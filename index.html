@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Resource-Based View of the Firm: Interactive Learning</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: { fontFamily: { sans: ['Inter','sans-serif'], serif: ['Merriweather','serif'] } } }
+}
+</script>
+<style>
+@keyframes fadeInUp { from{opacity:0;transform:translateY(15px)} to{opacity:1;transform:translateY(0)} }
+.animate-fade-in { animation: fadeInUp 0.5s ease-out forwards; }
+.perspective { perspective: 1000px; }
+.transform-style-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const dict = {
+  zh: {
+    brand: "RBV",
+    title: "企業資源基礎觀",
+    subtitle: "SMMC · 互動學習系列",
+    nav_modules: "單元目錄", nav_prev: "上一單元", nav_next: "下一單元",
+    key_terms: "關鍵專有名詞", flip_prompt: "點擊翻轉", audio_read: "語音導覽",
+    quiz_title: "模組知識檢定（隨機 4 題）",
+    submit: "提交答案", retry: "重新測驗",
+    score: "得分", correct: "正確", incorrect: "錯誤", explanation: "解析",
+    analytics_title: "學習歷程分析", analytics_desc: "追蹤您的學習進度、互動頻率與測驗表現",
+    analytics_form_title: "填寫學習者資訊",
+    analytics_group: "組別", analytics_dept: "系級",
+    analytics_dept_ph: "例：IBS3", analytics_id: "學號", analytics_id_ph: "例：112212099",
+    analytics_name: "姓名", analytics_name_ph: "例：Jimmy Lo",
+    analytics_export_csv: "匯出 CSV 歷程記錄",
+    analytics_fill_required: "請填寫完整資訊以解鎖匯出",
+    group_options: ["G1","G2","G3","G4","G5","Others"],
+    analytics_total_time: "總學習時間", analytics_total_clicks: "總互動點擊",
+    analytics_overall_acc: "總體測驗答對率",
+    analytics_module: "模組", analytics_time: "停留時間",
+    analytics_clicks: "點擊次數", analytics_acc: "答對率",
+    analytics_correct_ans_total: "答對 / 已填答 / 總題數",
+    analytics_no_data: "尚未測驗", analytics_sec: "秒", analytics_times: "次",
+    date: "Version 2026.03.26", copyright: "For Educational Use Only",
+    architect_label: "Architect:", architect_name: "Prof. Shihmin Lo",
+    architect_url: "https://www.ibs.ncnu.edu.tw/index.php/faculty/tenured-professor/299-smlo",
+
+    // M0
+    m0_nav: "0. 課程總覽",
+    m0_title: "企業資源基礎觀",
+    m0_intro: "本單元從產業分析轉向企業內部，探討資源基礎觀（RBV）如何解釋企業間的績效差異。我們將學習資源的分類與辨識、組織能力的建構、VRIN/VRIO 評估架構，以及知識基礎觀的延伸。透過台灣企業微個案，將理論與實務緊密結合。",
+    m0_why: "為什麼資源基礎觀重要？",
+    m0_why_desc: "Rumelt（1991）的研究顯示，企業特定因素解釋了 44.2% 的 ROA 變異，遠高於產業因素的 4%。這代表「你是誰」比「你在哪個產業」更重要。RBV 幫助我們辨識和培養那些真正創造持久優勢的內部資源與能力。",
+    m0_stats: [
+      { val: "44.2%", label: "企業因素解釋獲利變異" },
+      { val: "VRIN", label: "資源評估四準則" },
+      { val: "3 類", label: "資源分類（有形/無形/人力）" },
+      { val: "KBV", label: "知識基礎觀延伸" }
+    ],
+    m0_modules: [
+      { num: "01", title: "從產業到企業：為什麼要看內部？", desc: "企業特定因素 vs. 產業因素、RBV 的理論基礎與策略意涵" },
+      { num: "02", title: "資源的辨識與分類", desc: "有形、無形與人力資源、資源的策略價值差異" },
+      { num: "03", title: "組織能力與價值鏈", desc: "資源與能力的區別、能力層級、Porter 價值鏈分析" },
+      { num: "04", title: "評估資源與能力（VRIN/VRIO）", desc: "策略重要性、相對強度、Grant 與 Barney 雙架構" },
+      { num: "05", title: "資源、利潤與知識基礎觀", desc: "Ricardian 租金、知識作為策略資源、Nonaka 知識轉換" }
+    ],
+    m0_start: "開始學習 →",
+
+    // M1
+    m1_nav: "1. 從產業到企業",
+    m1_title: "從產業到企業：為什麼要看內部？",
+    m1_p1: "策略分析傳統上聚焦於產業吸引力（Porter 五力），但多項實證研究顯示，產業因素僅能解釋不到 20% 的企業間獲利差異。Rumelt（1991）的關鍵研究發現：企業特定因素（business-unit effects）解釋了 44.2% 的 ROA 變異，而產業因素僅解釋 4%。這場「由外而內」到「由內而外」的典範轉移，奠定了資源基礎觀的理論基礎。",
+    m1_p2: "「當外部環境處於劇烈變動中，企業本身——其擁有的資源與能力組合——可能是一個更加穩定的基礎，用以定義自身的身分認同。」——Grant",
+    m1_p3: "RBV 的價值模型解釋了超額利潤的來源：卓越獲利 = 較高的顧客價值（V-P）和/或較低的成本結構（C）。豐田相較於通用汽車，不僅創造更高的顧客效用（品質、可靠性），同時維持更低的成本結構（精實生產）。這種優勢源自企業特定的資源與能力，而非產業結構。",
+    m1_cards: [
+      { title: "由外而內 vs. 由內而外", desc: "產業焦點（Porter）vs. 資源焦點（RBV）。兩者都重要，但在動盪環境中，企業內部資源提供更穩定的策略基礎。Grant 認為資源是策略的起點，而非產品市場定位。" },
+      { title: "企業間績效差異的根源", desc: "Schmalensee 發現產業僅解釋 19.6% 的 ROA 變異；Rumelt 發現企業特定因素解釋 44.2%。McGahan & Porter（1997）確認企業效果遠大於產業效果。企業本身才是獲利的主要驅動力。" }
+    ],
+    m1_case_title: "微個案：HTC 的興衰——同產業、不同命運",
+    m1_case: "HTC 與 Apple 同處智慧型手機產業，面對相同的產業結構、相同的供應商（高通晶片、台積電代工），卻走向截然不同的命運。HTC 在 2008 年推出全球首款 Android 手機，2011 年巔峰時期全球市佔率達 9%。然而 HTC 缺乏 Apple 的品牌資產、生態系能力與設計文化——這些都是企業特定的無形資源。到 2017 年，HTC 以 11 億美元將手機品牌出售給 Google。產業吸引力對 HTC 和 Apple 完全相同，差異在於企業層級的資源與能力。",
+    m1_case_lesson: "啟示：HTC 的案例完美說明了 Rumelt 的發現——產業因素無法解釋同一產業內企業的巨大績效差異，企業特定的資源與能力才是關鍵。",
+    m1_terms: [
+      { front: "資源基礎觀 RBV", back: "Resource-Based View：企業的持久競爭優勢來自其擁有的獨特、有價值、難以模仿的資源與能力，而非僅來自產業定位。由 Wernerfelt（1984）與 Barney（1991）奠基。" },
+      { front: "企業特定因素 Business-Unit Effects", back: "Rumelt（1991）發現企業特定因素解釋了 44.2% 的 ROA 變異，遠高於產業因素的 4%。這個實證結果是 RBV 理論最有力的支持證據之一。" },
+      { front: "價值創造模型 Value Creation", back: "超額利潤 = 高顧客價值（V-P）和/或低成本（C）。企業透過內部資源與能力，在價值創造或成本控制上超越競爭對手，從而獲得競爭優勢。" }
+    ],
+    m1_q: [
+      { q: "Rumelt（1991）的研究發現，企業特定因素大約解釋了多少比例的 ROA 變異？", opts: ["4%","19.6%","44.2%","80%"], ans: 2, exp: "Rumelt 的關鍵發現：企業特定因素解釋 44.2% 的 ROA 變異，產業因素僅解釋 4%。" },
+      { q: "RBV 認為策略的起點應該是什麼？", opts: ["產業結構分析","企業內部資源與能力","競爭者分析","市場區隔"], ans: 1, exp: "RBV 主張策略應從辨識和培養企業獨特的內部資源與能力出發（由內而外）。" },
+      { q: "下列何者最能說明「由外而內」的策略思維？", opts: ["VRIN 分析","Porter 五力架構","核心能力理論","知識基礎觀"], ans: 1, exp: "Porter 五力從產業結構出發分析競爭環境，代表典型的「由外而內」途徑。" },
+      { q: "Grant 認為在動盪環境中，什麼是定義企業身分更穩定的基礎？", opts: ["市場定位","產業結構","企業資源與能力","政府政策"], ans: 2, exp: "Grant 主張當外部環境劇變時，企業自身的資源與能力組合是更穩定的策略基礎。" },
+      { q: "HTC 案例最能說明 RBV 的哪個核心論點？", opts: ["產業結構決定獲利","同產業企業績效相似","企業特定資源決定競爭優勢","技術領先者必然勝出"], ans: 2, exp: "HTC 與 Apple 同處一個產業，但因企業特定資源（品牌、生態系、設計能力）的差異，走向截然不同的結果。" },
+      { q: "豐田相較於通用汽車的優勢來源是什麼？", opts: ["較大的市場規模","較高的顧客價值 + 較低的成本","政府保護","較早進入市場"], ans: 1, exp: "豐田的精實生產系統同時實現較高品質（高 V-P）和較低成本（低 C），這來自企業特定的能力。" },
+      { q: "McGahan & Porter（1997）的研究確認了什麼？", opts: ["產業效果大於企業效果","企業效果大於產業效果","兩者效果相等","都不顯著"], ans: 1, exp: "McGahan & Porter 確認企業效果（32%）遠大於產業效果（19%），支持 RBV 的核心論點。" },
+      { q: "資源基礎觀的理論奠基者包括下列哪些學者？", opts: ["Porter & Mintzberg","Wernerfelt & Barney","Schumpeter & D'Aveni","Kim & Mauborgne"], ans: 1, exp: "Wernerfelt（1984）開創性論文與 Barney（1991）的 VRIN 架構是 RBV 的理論基石。" }
+    ],
+
+    // M2
+    m2_nav: "2. 資源的辨識與分類",
+    m2_title: "資源的辨識與分類",
+    m2_p1: "資源是企業控制的生產性資產——競爭優勢的構建基石。Grant 將資源分為三類：有形資源（財務、實體）、無形資源（技術、聲譽、文化）與人力資源（技能、動機、社會智商）。關鍵區別在於：無形資源通常具有更高的策略價值，因為它們更難轉移、複製或替代。",
+    m2_p2: "「在最重要但被低估或未被估值的無形資源中，品牌是最突出的。」——Grant",
+    m2_p3: "資源的財務報表往往無法反映其真實策略價值。企業的股票市值與帳面價值之間的差距，正是無形資源的體現。Apple 的品牌價值超過 5000 億美元，但帳面上只顯示實體資產。而授予持久競爭優勢的資源必須具備 Barney 的 VRIN 四特性：有價值（Valuable）、稀有（Rare）、難以模仿（Inimitable）、不可替代（Non-substitutable）。",
+    m2_cards: [
+      { title: "無形資源：隱藏的價值", desc: "帳面價值與市場價值的差距反映了無形資源。技術（專利、營業秘密、創新能力）、聲譽（品牌、顧客關係）與文化（組織價值觀、員工認同）是三大無形資源類別。它們是競爭優勢最重要但最難管理的來源。" },
+      { title: "不可模仿性的四個來源", desc: "（1）實體獨特性——不可複製的地點、專利；（2）路徑依賴——長期累積的獨特歷史；（3）因果模糊——競爭者無法辨識模仿標的；（4）社會複雜性——人際關係網絡無法人為再造。這四個因素構成最強的模仿障礙。" }
+    ],
+    m2_case_title: "微個案：聯發科的 IP 軍火庫——無形資源的競爭基礎",
+    m2_case: "聯發科（MediaTek）的競爭優勢完美展示了無形資源的策略價值。有形資源方面，聯發科擁有研發設施與晶片設計實驗室。但真正的護城河來自無形資源：超過 40,000 項全球專利、在中國品牌手機廠商中的強大品牌聲譽、以及獨特的高性價比晶片設計方法論。人力資源方面，約 20,000 名工程師中超過 80% 擁有碩士以上學位。聯發科的優勢具有明顯的路徑依賴性（25 年以上的晶片設計知識累積）與因果模糊性（如何在低成本下實現高性能難以逆向工程）。結果：聯發科的天璣 9300 能以顯著較低的成本與高通驍龍競爭。",
+    m2_case_lesson: "啟示：聯發科的案例說明了無形資源（專利、聲譽、設計方法論）與人力資源（高素質工程團隊）如何結合路徑依賴與因果模糊，創造出競爭對手難以複製的持久優勢。",
+    m2_terms: [
+      { front: "有形資源 Tangible Resources", back: "可以量化、在財務報表上反映的實體資產。包括財務資源（現金、信用額度）與實體資源（工廠、設備、土地、礦藏）。通常策略價值較低，因為容易被競爭者取得。" },
+      { front: "無形資源 Intangible Resources", back: "無法在財務報表完整反映的非實體資產。包括技術（專利、營業秘密）、聲譽（品牌、顧客信任）與文化（組織價值觀）。通常是策略上最有價值的資源類別。" },
+      { front: "因果模糊 Causal Ambiguity", back: "競爭者無法辨識出企業競爭優勢的具體來源，因此無法有效模仿。當優勢來自多項資源的複雜交互作用時，因果模糊性最強。是不可模仿性的重要來源之一。" }
+    ],
+    m2_q: [
+      { q: "Grant 將企業資源分為哪三大類？", opts: ["財務、技術、市場","有形、無形、人力","資本、勞動、土地","核心、輔助、周邊"], ans: 1, exp: "Grant 分類：有形資源（財務、實體）、無形資源（技術、聲譽、文化）、人力資源（技能、動機）。" },
+      { q: "哪一類資源通常具有最高的策略價值？", opts: ["有形資源","財務資源","無形資源","實體資源"], ans: 2, exp: "無形資源（品牌、專利、文化）因其難以轉移、複製和替代的特性，通常具有最高的策略價值。" },
+      { q: "企業市值與帳面價值的差距主要反映什麼？", opts: ["會計錯誤","無形資源的價值","通貨膨脹效果","市場投機"], ans: 1, exp: "市值超過帳面價值的部分，正是無形資源（品牌、智慧財產、組織能力等）的體現。" },
+      { q: "下列何者是「路徑依賴」的最佳例子？", opts: ["購買新設備","長期累積的企業文化","招聘新員工","降價促銷"], ans: 1, exp: "路徑依賴意味著資源是透過長期獨特的歷史過程累積而成，無法透過短期投入複製。企業文化是典型例子。" },
+      { q: "因果模糊為什麼能阻礙模仿？", opts: ["法律保護","競爭者不知道要模仿什麼","成本太高","市場太小"], ans: 1, exp: "當優勢來自多項資源的複雜交互作用時，競爭者無法辨識具體的成功因素，自然無法有效模仿。" },
+      { q: "聯發科的核心競爭優勢主要來自哪類資源？", opts: ["有形的製造設備","無形的專利與設計方法論","政府補貼","低廉的勞動力"], ans: 1, exp: "聯發科 40,000+ 專利、獨特的設計方法論、品牌聲譽都是無形資源，構成其核心競爭優勢。" },
+      { q: "VRIN 中的 I（Inimitable）有哪四個來源？", opts: ["創新、投資、整合、國際化","實體獨特、路徑依賴、因果模糊、社會複雜","價格、品質、速度、服務","規模、範疇、學習、網路"], ans: 1, exp: "Barney 提出不可模仿性的四個來源：實體獨特性、路徑依賴、因果模糊、社會複雜性。" },
+      { q: "下列何者屬於人力資源？", opts: ["工廠設備","品牌聲譽","員工的專業技能與動機","專利組合"], ans: 2, exp: "人力資源包括員工的知識、技能、溝通能力、動機與社會智商。它們依附於個人而非組織。" }
+    ],
+
+    // M3
+    m3_nav: "3. 組織能力與價值鏈",
+    m3_title: "組織能力與價值鏈",
+    m3_p1: "資源本身不會創造價值。腦外科醫生若沒有麻醉師、護理師和影像設備，就無法執行手術。組織能力（Organizational Capability）是「企業為達成預期成果而部署資源的能力」（Helfat & Lieberman）。關鍵區分：資源是企業「擁有」的東西；能力是企業「能做」的事情。",
+    m3_p2: "「每一項組織能力的基礎，都是組織成員之間的協調行為。」——Grant",
+    m3_p3: "Porter 的價值鏈提供了辨識能力的系統性架構。能力的層級從底層到頂層：專業化/單一任務能力（如自動波焊）→ 活動相關能力（如物料管理）→ 廣泛功能能力（如營運管理）→ 跨功能能力（如新產品開發）。卓越績效來自在較高層級的獨特能力組合，而非單一資源的堆疊。",
+    m3_cards: [
+      { title: "能力 ≠ 資源的總和", desc: "資源豐富的球隊（切爾西、皇馬）經常被資源較少但能力更強的球隊擊敗（多特蒙德、兵工廠）。商業上亦然：資源有限的新創企業透過卓越的能力擊敗資源豐富的巨頭（Dyson vs. Electrolux、現代 vs. 豐田）。" },
+      { title: "價值鏈作為能力地圖", desc: "價值鏈將企業解剖為主要活動（進貨物流、生產作業、出貨物流、行銷銷售、售後服務）與支援活動（企業基礎設施、人力資源、技術發展、採購）。每項活動都是潛在的競爭優勢來源。" }
+    ],
+    m3_case_title: "微個案：鴻海（Foxconn）——製造能力作為策略資產",
+    m3_case: "鴻海的有形資源令人印象深刻：120 萬名員工、全球 30 多個製造基地、先進的自動化設備。但鴻海的真正優勢在於組織能力：精密製造流程、即時物流系統、快速擴產能力。其跨功能能力尤為突出——能在數週內將 iPhone 產量從 0 提升至每天 50 萬台。這不僅僅是機器設備的問題，而是採購、製程工程、品質管理與人力資源系統的協調整合。鴻海的能力具有明顯的路徑依賴性（40 年以上的製造知識累積），且具備社會複雜性（供應商關係網絡、員工默會知識）。這就是為什麼 Apple 雖然對供應鏈集中有顧慮，卻無法輕易替換鴻海。",
+    m3_case_lesson: "啟示：鴻海說明了組織能力（而非資源本身）才是競爭優勢的真正來源。其製造能力是 Apple 硬體策略得以實現的關鍵——能力無法用金錢直接購買，只能透過長期的組織學習與協調來建構。",
+    m3_terms: [
+      { front: "組織能力 Organizational Capability", back: "企業為達成預期成果而部署資源的能力。能力不等於資源的簡單加總，而是組織成員之間協調行為的產物。它反映了企業「能做什麼」而非「擁有什麼」。" },
+      { front: "價值鏈 Value Chain", back: "Porter 提出的分析工具，將企業活動分為主要活動（進貨、生產、出貨、行銷、服務）與支援活動（基礎設施、HR、技術、採購），用以辨識每項活動中的競爭優勢來源。" },
+      { front: "能力層級 Capability Hierarchy", back: "從底層到頂層：專業化能力 → 活動相關能力 → 功能能力 → 跨功能能力。層級越高的能力越難模仿，但也越難管理與發展。" }
+    ],
+    m3_q: [
+      { q: "資源與能力的關鍵區別是什麼？", opts: ["資源比能力更重要","資源是企業擁有的，能力是企業能做的","兩者完全相同","能力只存在於製造業"], ans: 1, exp: "資源是投入要素（企業擁有的資產），能力是企業將資源轉化為成果的行動力。" },
+      { q: "Grant 認為組織能力的基礎是什麼？", opts: ["先進技術","充足資金","組織成員間的協調行為","市場佔有率"], ans: 2, exp: "Grant 強調：每一項組織能力的基礎都是組織成員之間的協調行為——能力本質上是組織性的。" },
+      { q: "在能力層級中，最高層級是什麼？", opts: ["專業化能力","功能能力","跨功能能力","活動相關能力"], ans: 2, exp: "跨功能能力（如新產品開發）是最高層級，整合多個功能部門，最難模仿但也最有策略價值。" },
+      { q: "價值鏈的「主要活動」不包括下列何者？", opts: ["生產作業","行銷銷售","人力資源管理","售後服務"], ans: 2, exp: "人力資源管理屬於支援活動。主要活動包括：進貨物流、生產作業、出貨物流、行銷銷售、售後服務。" },
+      { q: "鴻海的核心競爭優勢主要來自什麼？", opts: ["廉價勞動力","組織層級的製造能力","政府補貼","品牌效應"], ans: 1, exp: "鴻海的優勢不僅在於設備或人力，而在於將採購、製程、品管、HR 系統協調整合的組織能力。" },
+      { q: "為什麼「資源豐富」不等於「能力強大」？", opts: ["資源不重要","需要協調與整合才能轉化為能力","資源會貶值","能力不需要資源"], ans: 1, exp: "球隊例子說明：即使擁有最貴的球員（資源），沒有協調配合（能力），也無法贏得比賽。" },
+      { q: "下列何者是跨功能能力的例子？", opts: ["自動焊接","倉儲管理","新產品開發","會計處理"], ans: 2, exp: "新產品開發需要 R&D、行銷、生產、財務等多個功能部門的協調，是典型的跨功能能力。" },
+      { q: "Apple 為何難以替換鴻海？", opts: ["合約限制","鴻海的製造能力具路徑依賴與社會複雜性","鴻海價格最低","法律限制"], ans: 1, exp: "鴻海 40 年累積的製造知識（路徑依賴）與供應商關係網絡（社會複雜性）難以被其他廠商複製。" }
+    ],
+
+    // M4
+    m4_nav: "4. VRIN/VRIO 評估",
+    m4_title: "評估資源與能力（VRIN/VRIO）",
+    m4_p1: "辨識資源只是第一步。評估資源需要回答兩個問題：（1）這項資源的策略重要性有多高？（2）相對於競爭者的強度如何？Grant 的架構從三個面向評估策略重要性：建立競爭優勢的潛力（相關性、稀缺性）、維持優勢（耐久性、可轉移性、可複製性）、以及佔有回報（財產權、議價力、嵌入性）。",
+    m4_p2: "「資源基礎觀對企業策略制定有深遠的含義。當策略的首要關注是產業定位時，首要任務是選擇一個產業。」——Grant",
+    m4_p3: "Grant 的架構產生一個 2×2 矩陣：策略重要性 × 相對強度。關鍵優勢（高重要性、高強度）應積極部署；關鍵劣勢（高重要性、低強度）需要緊急行動——透過改善、外包或巧妙策略來克服。例如 Harley-Davidson 面對技術劣勢時，選擇將品牌定位於「經典美式文化」而非「技術領先」，巧妙規避了弱點。",
+    m4_cards: [
+      { title: "Grant vs. Barney：兩套架構，相同目標", desc: "Grant 架構：相關性、稀缺性、耐久性、可轉移性、可複製性、財產權、議價力、嵌入性。Barney VRIO：有價值、稀有、不可模仿、有組織。兩者都評估競爭優勢潛力，但 Grant 額外強調耐久性與回報佔有。" },
+      { title: "回報佔有：誰拿走了租金？", desc: "投資銀行（如 Goldman Sachs）有出色的能力——但員工往往佔有比股東更多的價值。能力越依附於個人，員工的議價力越強。這解釋了為什麼許多企業強調團隊能力而非個人明星。" }
+    ],
+    m4_case_title: "微個案：台積電——完美的 VRIN 資源分析",
+    m4_case: "以 VRIN 架構分析台積電的先進製程能力：Valuable（有價值）——3nm/2nm 製程生產的晶片驅動所有主要 AI 工作負載，直接回應客戶最關鍵的需求。Rare（稀有）——全球僅台積電和三星能製造先進節點晶片，但只有台積電在規模化生產中保持獲利。Inimitable（難以模仿）——路徑依賴（30 年以上與 ASML、應用材料等共同開發的製程 R&D）、因果模糊（良率成功是上千個變數的複雜組合）、社會複雜性（數十年純代工模式建立的客戶信任）。Non-substitutable（不可替代）——前沿 AI 晶片沒有替代製造途徑。結果：台積電 2024 年毛利率超過 53%，賺取競爭對手無法匹配的 Ricardian 租金。",
+    m4_case_lesson: "啟示：台積電是 VRIN 分析的教科書案例——每一個維度都滿足，因此享有極高的可持續競爭優勢。這也說明了為什麼台積電的「護城河」如此難以攻破。",
+    m4_terms: [
+      { front: "VRIN 架構", back: "Barney 提出的資源評估架構：Valuable（有價值）、Rare（稀有）、Inimitable（難以模仿）、Non-substitutable（不可替代）。四項條件全部滿足時，資源能授予持久競爭優勢。" },
+      { front: "耐久性 Durability", back: "Grant 架構中的關鍵維度：資源能維持多久而不貶值？品牌聲譽可能持續數十年，但技術資源在快速變遷的產業中可能迅速過時。耐久性越高，競爭優勢越持久。" },
+      { front: "回報佔有 Appropriability", back: "誰能從資源創造的價值中獲利？取決於財產權的明確程度、關鍵員工的議價力、以及能力在組織中的嵌入程度。能力越依附個人，企業佔有回報越困難。" }
+    ],
+    m4_q: [
+      { q: "Grant 評估資源策略重要性的三個面向是什麼？", opts: ["規模、範疇、速度","建立優勢、維持優勢、佔有回報","成本、品質、創新","市場、技術、組織"], ans: 1, exp: "Grant 從三面向評估：建立競爭優勢的潛力、維持優勢的能力、佔有回報的可能性。" },
+      { q: "在 Grant 的 2×2 矩陣中，「高策略重要性、低相對強度」的區域代表什麼？", opts: ["關鍵優勢","關鍵劣勢","超額資源","無關痛癢"], ans: 1, exp: "這代表關鍵劣勢——該資源對競爭很重要，但企業在此落後，需要緊急改善或策略性規避。" },
+      { q: "Harley-Davidson 如何克服技術劣勢？", opts: ["大量投資技術","將品牌定位於美式文化而非技術","放棄市場","收購技術公司"], ans: 1, exp: "Harley-Davidson 不試圖在技術上追趕日本車廠，而是將弱點轉化為優勢——老式技術成為品牌「經典」魅力的一部分。" },
+      { q: "台積電的先進製程能力滿足 VRIN 哪些條件？", opts: ["僅 V 和 R","僅 V、R 和 I","四項全部（V、R、I、N）","僅 V"], ans: 2, exp: "台積電的先進製程同時滿足有價值、稀有、難以模仿（路徑依賴+因果模糊+社會複雜）與不可替代。" },
+      { q: "為什麼投資銀行的股東回報可能低於預期？", opts: ["產業不景氣","關鍵員工佔有大量價值","技術過時","客戶流失"], ans: 1, exp: "投資銀行的能力高度依附個人，明星交易員和分析師的議價力極強，佔走了大量經濟租金。" },
+      { q: "Grant 與 Barney 架構的主要差異是什麼？", opts: ["完全不同的理論","Grant 額外強調耐久性與回報佔有","Barney 架構更全面","沒有差異"], ans: 1, exp: "兩者都評估競爭優勢潛力，但 Grant 明確加入耐久性（資源多久會貶值）和回報佔有（誰獲利）的維度。" },
+      { q: "下列哪個因素使台積電的製程最難被模仿？", opts: ["設備價格昂貴","因果模糊（良率涉及上千變數）","專利保護","政府補貼"], ans: 1, exp: "台積電的良率涉及數千個製程變數的交互作用（因果模糊），加上 30 年路徑依賴，構成最強模仿障礙。" },
+      { q: "VRIO 中的 O 代表什麼？", opts: ["Opportunity","Organization","Optimization","Outsourcing"], ans: 1, exp: "VRIO 的 O = Organization（有組織），指企業是否有適當的組織架構來充分利用其資源的潛力。" }
+    ],
+
+    // M5
+    m5_nav: "5. 利潤與知識基礎觀",
+    m5_title: "資源、利潤與知識基礎觀",
+    m5_p1: "RBV 解釋了兩種超額利潤的來源：壟斷租金（monopoly rents，來自市場力量，受進入障礙保護）與 Ricardian 租金（來自優越的資源，以 David Ricardo 對肥沃土地的分析命名）。多數可持續的競爭優勢最終都可追溯到策略性有價值的資源所有權，暗示產業吸引力本身可能源自資源所有權。",
+    m5_p2: "「一個人只因優勢而獲得報酬；沒有人因劣勢而獲得報酬。」——Peter Drucker",
+    m5_p3: "Grant 的知識基礎觀（KBV）延伸了 RBV，主張知識是最具策略意義的資源，因為它最難轉移和複製。Nonaka 的架構辨識了四種知識轉換模式：社會化（默會→默會）、外化（默會→顯性）、組合（顯性→顯性）、內化（顯性→默會）。能有效管理這個循環的企業——生成、分享、制度化知識——能隨時間累積越來越強大的能力。",
+    m5_cards: [
+      { title: "Ricardian 租金 vs. 壟斷租金", desc: "壟斷租金來自市場力量（寡佔、法規保護）。Ricardian 租金來自稀缺、優越的資源——如 Ricardo 模型中的肥沃農地，或 Dolby 的音響技術在 2014 年賺取 8.79 億美元權利金。RBV 聚焦於後者。" },
+      { title: "KBV：知識是能力的根源", desc: "知識是最難模仿的資源，因為默會知識（know-how、判斷力、體現的技能）抗拒編碼與轉移。Prahalad & Hamel 的「核心能力」概念與 KBV 相符——最深層的能力根植於競爭者無法購買或複製的知識。" }
+    ],
+    m5_case_title: "微個案：工研院（ITRI）——台灣的知識創造引擎",
+    m5_case: "工研院（Industrial Technology Research Institute）於 1973 年成立，是台灣最重要的國家級研發機構，也是 Nonaka 知識轉換循環的國家級示範。社會化（默會→默會）：工程師在聯合實驗室中與產業夥伴並肩工作，傳遞難以言傳的研發經驗。外化（默會→顯性）：透過專利、技術報告、標準規範等形式，將默會知識轉化為可記錄的顯性知識——工研院全球持有超過 25,000 項專利。組合（顯性→顯性）：透過技術移轉創造衍生企業（台積電、聯電、世界先進等數十家 IC 設計公司）。內化（顯性→默會）：回流產業界的工程師帶走了具身化的知識。結果：工研院已孵化超過 300 家企業，累計創造超過 3 兆新台幣的產業營收。",
+    m5_case_lesson: "啟示：工研院是 Nonaka 知識轉換循環的活教材——系統性地將政府研發投資轉化為具競爭力的產業。台灣半導體產業的成功，根本上就是一個知識基礎觀的成功故事。",
+    m5_terms: [
+      { front: "Ricardian 租金", back: "以經濟學家 David Ricardo 命名：因擁有稀缺、優越的資源而獲得的超額利潤。如同 Ricardo 模型中肥沃的農地相較於貧瘠土地產生的超額收益，企業因擁有獨特資源而獲得超出常態的報酬。" },
+      { front: "知識基礎觀 KBV", back: "Knowledge-Based View：RBV 的延伸，主張知識是最重要的策略資源。因為默會知識（tacit knowledge）極難編碼和轉移，以知識為基礎的能力構成最強的持久競爭優勢。" },
+      { front: "SECI 知識轉換模型", back: "Nonaka 提出的四種知識轉換模式：Socialization（社會化，默會→默會）、Externalization（外化，默會→顯性）、Combination（組合，顯性→顯性）、Internalization（內化，顯性→默會）。" }
+    ],
+    m5_q: [
+      { q: "Ricardian 租金的來源是什麼？", opts: ["市場壟斷力量","擁有稀缺且優越的資源","政府補貼","價格操控"], ans: 1, exp: "Ricardian 租金以 Ricardo 命名：擁有稀缺的優越資源（如肥沃土地或獨特技術）而獲得的超額利潤。" },
+      { q: "KBV 認為哪種資源最具策略意義？", opts: ["財務資源","實體資產","知識","品牌"], ans: 2, exp: "知識基礎觀主張知識——特別是默會知識——是最難轉移和複製的，因此是最具策略意義的資源。" },
+      { q: "Nonaka 知識轉換中的「社會化」是什麼？", opts: ["顯性→顯性","默會→默會","默會→顯性","顯性→默會"], ans: 1, exp: "社會化是默會知識到默會知識的轉換——透過觀察、模仿和共同實踐，傳遞難以言傳的經驗知識。" },
+      { q: "工研院對台灣產業最重要的貢獻機制是什麼？", opts: ["直接製造產品","系統性的知識轉換與技術移轉","提供低利貸款","設定產業標準"], ans: 1, exp: "工研院透過 Nonaka 的 SECI 循環，將研發知識系統性轉化為產業能力，孵化出台積電等 300 多家企業。" },
+      { q: "默會知識為何構成最強的模仿障礙？", opts: ["可以申請專利","難以編碼、記錄和轉移","價格昂貴","只存在於大企業"], ans: 1, exp: "默會知識（判斷力、直覺、體現的技能）抗拒編碼——你無法把它寫成手冊，因此競爭者極難模仿。" },
+      { q: "壟斷租金與 Ricardian 租金的主要差異是什麼？", opts: ["前者來自市場力量，後者來自優越資源","前者更持久","前者更合法","兩者完全相同"], ans: 0, exp: "壟斷租金源於市場力量（進入障礙、寡佔），Ricardian 租金源於擁有稀缺且優越的資源。RBV 聚焦後者。" },
+      { q: "Prahalad & Hamel 的「核心能力」概念與 KBV 有什麼關係？", opts: ["完全矛盾","核心能力根植於知識，與 KBV 一致","核心能力取代了 KBV","沒有關係"], ans: 1, exp: "核心能力的深層基礎是組織知識——特別是默會知識的累積與整合，這與 KBV 的核心主張完全一致。" },
+      { q: "Peter Drucker 的名言「一個人只因優勢而獲得報酬」暗示什麼策略含義？", opts: ["企業應專注於修補弱點","企業應專注於發揮和強化既有資源優勢","弱點不重要","所有企業優勢相同"], ans: 1, exp: "Drucker 的洞見支持 RBV：策略的核心是辨識、培養並發揮企業獨特的資源優勢，而非僅修補弱點。" }
+    ],
+
+    m6_nav: "6. 外部資源", m6_title: "延伸閱讀與外部資源", m6_desc: "精選的學術論文、影片、產業報告與新聞連結，延伸本單元主題的學習。",
+    mlab_nav: "7. 互動實驗室", mlab_title: "互動實驗室", mlab_desc: "透過互動圖表與模型，探索資源基礎觀的核心概念。"
+  },
+  en: {
+    brand: "RBV",
+    title: "Resource-Based View of the Firm",
+    subtitle: "SMMC · Interactive Learning Series",
+    nav_modules: "Module Directory", nav_prev: "Previous", nav_next: "Next Module",
+    key_terms: "Key Terms", flip_prompt: "Click to flip", audio_read: "Audio Guide",
+    quiz_title: "Module Quiz (Random 4 Questions)",
+    submit: "Submit", retry: "Retry",
+    score: "Score", correct: "Correct", incorrect: "Incorrect", explanation: "Explanation",
+    analytics_title: "Learning Analytics", analytics_desc: "Track your learning progress, interaction frequency, and quiz performance",
+    analytics_form_title: "Student Information",
+    analytics_group: "Group", analytics_dept: "Department",
+    analytics_dept_ph: "e.g., IBS3", analytics_id: "Student ID", analytics_id_ph: "e.g., 112212099",
+    analytics_name: "Name", analytics_name_ph: "e.g., Jimmy Lo",
+    analytics_export_csv: "Export CSV Report",
+    analytics_fill_required: "Fill in all fields to unlock export",
+    group_options: ["G1","G2","G3","G4","G5","Others"],
+    analytics_total_time: "Total Time", analytics_total_clicks: "Total Clicks",
+    analytics_overall_acc: "Overall Accuracy",
+    analytics_module: "Module", analytics_time: "Time Spent",
+    analytics_clicks: "Clicks", analytics_acc: "Accuracy",
+    analytics_correct_ans_total: "Correct / Answered / Total",
+    analytics_no_data: "No data", analytics_sec: "s", analytics_times: "x",
+    date: "Version 2026.03.26", copyright: "For Educational Use Only",
+    architect_label: "Architect:", architect_name: "Prof. Shihmin Lo",
+    architect_url: "https://www.ibs.ncnu.edu.tw/index.php/faculty/tenured-professor/299-smlo",
+
+    m0_nav: "0. Overview",
+    m0_title: "Resource-Based View of the Firm",
+    m0_intro: "This module shifts from industry analysis to the firm's interior, exploring how the Resource-Based View (RBV) explains inter-firm performance differences. We study resource classification, organizational capabilities, the VRIN/VRIO appraisal framework, and the Knowledge-Based View extension—all grounded in Taiwan micro-cases.",
+    m0_why: "Why Does the Resource-Based View Matter?",
+    m0_why_desc: "Rumelt (1991) showed firm-specific factors explain 44.2% of ROA variance vs. only 4% for industry factors. This means 'who you are' matters far more than 'which industry you're in.' RBV helps us identify and cultivate the internal resources and capabilities that truly create durable advantage.",
+    m0_stats: [
+      { val: "44.2%", label: "Firm factors explain ROA variance" },
+      { val: "VRIN", label: "Resource appraisal criteria" },
+      { val: "3 Types", label: "Resources (Tangible/Intangible/Human)" },
+      { val: "KBV", label: "Knowledge-Based View extension" }
+    ],
+    m0_modules: [
+      { num: "01", title: "From Industry to Firm: Why Look Inside?", desc: "Firm-specific vs. industry factors, RBV theoretical foundations and strategic implications" },
+      { num: "02", title: "Identifying & Classifying Resources", desc: "Tangible, intangible & human resources, strategic value differences" },
+      { num: "03", title: "Organizational Capabilities & Value Chain", desc: "Resource vs. capability distinction, capability hierarchy, Porter's value chain" },
+      { num: "04", title: "Appraising Resources (VRIN/VRIO)", desc: "Strategic importance, relative strength, Grant vs. Barney frameworks" },
+      { num: "05", title: "Resources, Profits & Knowledge-Based View", desc: "Ricardian rents, knowledge as strategic resource, Nonaka's SECI model" }
+    ],
+    m0_start: "Start Learning →",
+
+    m1_nav: "1. From Industry to Firm",
+    m1_title: "From Industry to Firm: Why Look Inside?",
+    m1_p1: "Strategy traditionally focused on industry attractiveness (Porter's Five Forces), but multiple empirical studies show industry factors explain less than 20% of inter-firm profit variance. Rumelt's (1991) landmark study found firm-specific factors (business-unit effects) explain 44.2% of ROA variance, while industry factors explain only 4%. This paradigm shift from 'outside-in' to 'inside-out' laid the theoretical foundation for RBV.",
+    m1_p2: "\"When the external environment is in a state of flux, the firm itself—in terms of the bundle of resources and capabilities it possesses—may be a much more stable basis upon which to define its identity.\" — Grant",
+    m1_p3: "RBV's value model explains sources of superior profitability: Superior Profit = Higher Customer Value (V-P) and/or Lower Cost (C). Toyota outperforms GM not only by creating higher customer utility (quality, reliability) but also by maintaining lower costs (lean production). This advantage stems from firm-specific resources and capabilities, not industry structure.",
+    m1_cards: [
+      { title: "Outside-In vs. Inside-Out", desc: "Industry focus (Porter) vs. Resource focus (RBV). Both matter, but in turbulent environments, internal resources provide a more stable strategic foundation. Grant argues resources are the starting point of strategy, not product-market positioning." },
+      { title: "The Root of Inter-Firm Performance Differences", desc: "Schmalensee found industry explains only 19.6% of ROA variance; Rumelt found firm-specific effects explain 44.2%. McGahan & Porter (1997) confirmed firm effects far exceed industry effects. The firm itself is the primary driver of profitability." }
+    ],
+    m1_case_title: "Micro-Case: HTC's Rise & Fall — Same Industry, Different Fortunes",
+    m1_case: "HTC and Apple operated in the same smartphone industry, facing identical industry structure and suppliers (Qualcomm chips, TSMC foundry), yet met vastly different fates. HTC launched the world's first Android phone in 2008, peaking at 9% global market share in 2011. However, HTC lacked Apple's brand equity, ecosystem capabilities, and design culture—all firm-specific intangible resources. By 2017, HTC sold its smartphone brand to Google for $1.1 billion. Industry attractiveness was identical for both; what differed was firm-level resources and capabilities.",
+    m1_case_lesson: "Insight: HTC's case perfectly illustrates Rumelt's finding—industry factors cannot explain the vast performance differences between firms in the same industry. Firm-specific resources and capabilities are the key.",
+    m1_terms: [
+      { front: "Resource-Based View (RBV)", back: "A firm's sustainable competitive advantage derives from its unique, valuable, and hard-to-imitate resources and capabilities, not merely from industry positioning. Founded by Wernerfelt (1984) and Barney (1991)." },
+      { front: "Business-Unit Effects", back: "Rumelt (1991) found firm-specific factors explain 44.2% of ROA variance vs. only 4% for industry factors. This empirical finding is one of the strongest pieces of evidence supporting RBV." },
+      { front: "Value Creation Model", back: "Superior profit = High customer value (V-P) and/or Low cost (C). Firms leverage internal resources and capabilities to outperform competitors in value creation or cost control." }
+    ],
+    m1_q: [
+      { q: "Rumelt (1991) found firm-specific factors explain approximately what % of ROA variance?", opts: ["4%","19.6%","44.2%","80%"], ans: 2, exp: "Rumelt's key finding: firm-specific factors explain 44.2% of ROA variance vs. only 4% for industry factors." },
+      { q: "According to RBV, what should be the starting point of strategy?", opts: ["Industry structure analysis","Internal resources and capabilities","Competitor analysis","Market segmentation"], ans: 1, exp: "RBV argues strategy should start from identifying and cultivating unique internal resources and capabilities (inside-out)." },
+      { q: "Which best represents 'outside-in' strategic thinking?", opts: ["VRIN analysis","Porter's Five Forces","Core competence theory","Knowledge-based view"], ans: 1, exp: "Porter's Five Forces analyzes competitive environment from industry structure—the classic 'outside-in' approach." },
+      { q: "According to Grant, what provides a more stable basis for identity in turbulent environments?", opts: ["Market positioning","Industry structure","Firm's resources and capabilities","Government policy"], ans: 2, exp: "Grant argues that when the environment is in flux, the firm's bundle of resources and capabilities is a more stable foundation." },
+      { q: "What core RBV argument does the HTC case best illustrate?", opts: ["Industry structure determines profits","Firms in the same industry perform similarly","Firm-specific resources determine competitive advantage","Technology leaders always win"], ans: 2, exp: "HTC and Apple were in the same industry but differed vastly in firm-specific resources (brand, ecosystem, design capability)." },
+      { q: "What is the source of Toyota's advantage over GM?", opts: ["Larger market size","Higher customer value + lower costs","Government protection","Earlier market entry"], ans: 1, exp: "Toyota's lean production achieves both higher quality (high V-P) and lower costs (low C)—from firm-specific capabilities." },
+      { q: "What did McGahan & Porter (1997) confirm?", opts: ["Industry effects exceed firm effects","Firm effects exceed industry effects","Both effects are equal","Neither is significant"], ans: 1, exp: "McGahan & Porter confirmed firm effects (32%) far exceed industry effects (19%), supporting RBV's core argument." },
+      { q: "Who are the founding scholars of RBV?", opts: ["Porter & Mintzberg","Wernerfelt & Barney","Schumpeter & D'Aveni","Kim & Mauborgne"], ans: 1, exp: "Wernerfelt's (1984) seminal paper and Barney's (1991) VRIN framework are RBV's theoretical cornerstones." }
+    ],
+
+    m2_nav: "2. Identifying Resources",
+    m2_title: "Identifying & Classifying Resources",
+    m2_p1: "Resources are the productive assets controlled by a firm—the building blocks of competitive advantage. Grant classifies them into three types: tangible (financial, physical), intangible (technology, reputation, culture), and human (skills, motivation, social intelligence). The critical distinction: intangible resources typically hold the highest strategic value because they are harder to transfer, replicate, or substitute.",
+    m2_p2: "\"Among the most important of undervalued or unvalued intangible resources are brands.\" — Grant",
+    m2_p3: "Financial statements often fail to reflect resources' true strategic value. The gap between market capitalization and book value represents intangible resources. Apple's brand alone is valued at $500B+, yet the balance sheet only shows physical assets. Resources conferring sustainable advantage must possess Barney's VRIN properties: Valuable, Rare, Inimitable, and Non-substitutable.",
+    m2_cards: [
+      { title: "Intangible Resources: The Hidden Value", desc: "The gap between book and market value reflects intangible resources. Technology (patents, trade secrets, innovation), reputation (brands, customer relationships), and culture (organizational values, employee identification) are the three intangible categories. They are the most valuable yet hardest to manage." },
+      { title: "Four Sources of Inimitability", desc: "(1) Physical uniqueness—irreproducible location, patent; (2) Path dependency—built through unique historical accumulation; (3) Causal ambiguity—competitors can't identify what to copy; (4) Social complexity—interpersonal networks that can't be engineered. These constitute the strongest imitation barriers." }
+    ],
+    m2_case_title: "Micro-Case: MediaTek's IP Arsenal — Intangible Resources as Competitive Foundation",
+    m2_case: "MediaTek's competitive advantage perfectly demonstrates the strategic value of intangible resources. In tangible resources, MediaTek has R&D facilities and chip design labs. But the real moat is intangible: 40,000+ global patents, strong brand reputation among Chinese OEMs, and a unique high-performance-at-low-cost design methodology. Human resources: ~20,000 engineers, 80%+ with advanced degrees. MediaTek's advantage shows clear path dependency (25+ years of chip design knowledge) and causal ambiguity (how they achieve high performance at low cost is hard to reverse-engineer). Result: MediaTek's Dimensity 9300 competes with Qualcomm's Snapdragon at significantly lower cost.",
+    m2_case_lesson: "Insight: MediaTek demonstrates how intangible resources (patents, reputation, design methodology) combined with human resources (elite engineering teams) create durable advantages through path dependency and causal ambiguity that competitors cannot replicate.",
+    m2_terms: [
+      { front: "Tangible Resources", back: "Quantifiable physical assets reflected on financial statements. Includes financial resources (cash, credit) and physical resources (plants, equipment, land, minerals). Typically lower strategic value since competitors can acquire them." },
+      { front: "Intangible Resources", back: "Non-physical assets not fully reflected on financial statements. Includes technology (patents, trade secrets), reputation (brands, customer trust), and culture (organizational values). Usually the most strategically valuable resource category." },
+      { front: "Causal Ambiguity", back: "Competitors cannot identify the specific sources of a firm's competitive advantage, thus cannot effectively imitate. Strongest when advantage arises from complex interactions among multiple resources. A key source of inimitability." }
+    ],
+    m2_q: [
+      { q: "How does Grant classify firm resources?", opts: ["Financial, technical, market","Tangible, intangible, human","Capital, labor, land","Core, supporting, peripheral"], ans: 1, exp: "Grant's classification: tangible (financial, physical), intangible (technology, reputation, culture), and human (skills, motivation)." },
+      { q: "Which resource type typically has the highest strategic value?", opts: ["Tangible","Financial","Intangible","Physical"], ans: 2, exp: "Intangible resources (brands, patents, culture) typically have the highest strategic value due to being hard to transfer, replicate, and substitute." },
+      { q: "What does the gap between market cap and book value primarily reflect?", opts: ["Accounting errors","Value of intangible resources","Inflation effects","Market speculation"], ans: 1, exp: "The excess of market value over book value represents intangible resources (brands, IP, organizational capabilities)." },
+      { q: "Which best exemplifies 'path dependency'?", opts: ["Purchasing new equipment","Long-accumulated organizational culture","Hiring new employees","Price promotions"], ans: 1, exp: "Path dependency means resources are built through unique historical processes and cannot be replicated through short-term investment." },
+      { q: "Why does causal ambiguity prevent imitation?", opts: ["Legal protection","Competitors don't know what to imitate","Too expensive","Market too small"], ans: 1, exp: "When advantage arises from complex resource interactions, competitors cannot identify the specific success factors to imitate." },
+      { q: "MediaTek's core competitive advantage primarily comes from which resource type?", opts: ["Tangible manufacturing equipment","Intangible patents and design methodology","Government subsidies","Cheap labor"], ans: 1, exp: "MediaTek's 40,000+ patents, unique design methodology, and brand reputation are all intangible resources forming its core advantage." },
+      { q: "What are the four sources of Inimitability in VRIN?", opts: ["Innovation, investment, integration, internationalization","Physical uniqueness, path dependency, causal ambiguity, social complexity","Price, quality, speed, service","Scale, scope, learning, network"], ans: 1, exp: "Barney identified four sources of inimitability: physical uniqueness, path dependency, causal ambiguity, and social complexity." },
+      { q: "Which of the following is a human resource?", opts: ["Factory equipment","Brand reputation","Employees' skills and motivation","Patent portfolio"], ans: 2, exp: "Human resources include employees' knowledge, skills, communication ability, motivation, and social intelligence. They reside in individuals, not the organization." }
+    ],
+
+    m3_nav: "3. Capabilities & Value Chain",
+    m3_title: "Organizational Capabilities & Value Chain",
+    m3_p1: "Resources alone don't create value. A brain surgeon is useless without anesthesiologists, nurses, and imaging equipment. Organizational capability is 'a firm's capacity to deploy resources for a desired end result' (Helfat & Lieberman). Key distinction: a resource is what a firm has; a capability is what a firm can do.",
+    m3_p2: "\"At the basis of every organizational capability is coordinated behavior among organizational members.\" — Grant",
+    m3_p3: "Porter's value chain provides a systematic framework for identifying capabilities. The capability hierarchy runs from: specialized/single-task capabilities (e.g., automated wave soldering) → activity-related capabilities (e.g., materials management) → broad functional capabilities (e.g., operations) → cross-functional capabilities (e.g., new product development). Superior performance results from unique combinations at higher levels.",
+    m3_cards: [
+      { title: "Capabilities ≠ Sum of Resources", desc: "Resource-rich teams (Chelsea, Real Madrid) are often outplayed by resource-modest teams with superior capabilities (Dortmund, Arsenal). In business too: resource-modest startups routinely outcompete established giants through superior capabilities (Dyson vs. Electrolux, Hyundai vs. Toyota)." },
+      { title: "Value Chain as Capability Map", desc: "The value chain dissects the firm into primary activities (inbound logistics, operations, outbound logistics, marketing & sales, service) and support activities (firm infrastructure, HR, technology development, procurement). Each activity is a potential source of competitive advantage." }
+    ],
+    m3_case_title: "Micro-Case: Foxconn (Hon Hai) — Manufacturing Capability as Strategic Asset",
+    m3_case: "Foxconn's tangible resources are impressive: 1.2 million employees, 30+ global manufacturing complexes, advanced automation. But Foxconn's real advantage lies in organizational capabilities: precision manufacturing processes, just-in-time logistics, and rapid scale-up capacity. Its cross-functional capability is remarkable—ramping iPhone production from 0 to 500,000 units/day within weeks. This isn't just about machinery; it's the coordinated integration of procurement, process engineering, quality management, and HR systems. Foxconn's capability shows clear path dependency (40+ years of manufacturing knowledge) and social complexity (supplier relationship networks, employees' tacit know-how). This is why Apple cannot easily replace Foxconn despite supply chain concentration concerns.",
+    m3_case_lesson: "Insight: Foxconn demonstrates that organizational capabilities (not resources per se) are the true source of competitive advantage. Its manufacturing capability is what makes Apple's hardware strategy viable—capabilities cannot be purchased with money, only built through long-term organizational learning.",
+    m3_terms: [
+      { front: "Organizational Capability", back: "A firm's capacity to deploy resources for a desired end result. Capabilities are not the simple sum of resources but products of coordinated behavior among organizational members. They reflect what a firm 'can do' rather than what it 'has.'" },
+      { front: "Value Chain", back: "Porter's analytical tool dividing firm activities into primary (inbound, operations, outbound, marketing, service) and support activities (infrastructure, HR, technology, procurement) to identify competitive advantage sources in each." },
+      { front: "Capability Hierarchy", back: "From bottom to top: specialized capabilities → activity-related capabilities → functional capabilities → cross-functional capabilities. Higher-level capabilities are harder to imitate but also harder to manage and develop." }
+    ],
+    m3_q: [
+      { q: "What is the key distinction between resources and capabilities?", opts: ["Resources are more important","Resources are what firms have; capabilities are what firms can do","They are identical","Capabilities only exist in manufacturing"], ans: 1, exp: "Resources are input factors (assets firms own); capabilities are the ability to transform resources into outcomes." },
+      { q: "According to Grant, what is the foundation of organizational capability?", opts: ["Advanced technology","Sufficient funding","Coordinated behavior among members","Market share"], ans: 2, exp: "Grant emphasizes that every organizational capability is based on coordinated behavior among organizational members." },
+      { q: "What is the highest level in the capability hierarchy?", opts: ["Specialized capabilities","Functional capabilities","Cross-functional capabilities","Activity-related capabilities"], ans: 2, exp: "Cross-functional capabilities (e.g., new product development) integrate multiple departments and are hardest to imitate." },
+      { q: "Which is NOT a primary activity in the value chain?", opts: ["Operations","Marketing & sales","Human resource management","After-sales service"], ans: 2, exp: "HR management is a support activity. Primary activities: inbound logistics, operations, outbound logistics, marketing & sales, service." },
+      { q: "What is Foxconn's core competitive advantage based on?", opts: ["Cheap labor","Organizational-level manufacturing capabilities","Government subsidies","Brand effect"], ans: 1, exp: "Foxconn's advantage lies not just in equipment or labor, but in integrating procurement, engineering, QC, and HR into organizational capability." },
+      { q: "Why doesn't 'resource-rich' equal 'capability-strong'?", opts: ["Resources don't matter","Resources need coordination and integration to become capabilities","Resources depreciate","Capabilities don't need resources"], ans: 1, exp: "Even with the most expensive players (resources), without coordination (capabilities), you can't win matches." },
+      { q: "Which is an example of cross-functional capability?", opts: ["Automated welding","Warehouse management","New product development","Accounting"], ans: 2, exp: "New product development requires coordination across R&D, marketing, production, and finance—a typical cross-functional capability." },
+      { q: "Why can't Apple easily replace Foxconn?", opts: ["Contractual restrictions","Foxconn's capabilities show path dependency and social complexity","Foxconn's lowest price","Legal restrictions"], ans: 1, exp: "Foxconn's 40-year manufacturing knowledge (path dependency) and supplier networks (social complexity) cannot be replicated." }
+    ],
+
+    m4_nav: "4. VRIN/VRIO Appraisal",
+    m4_title: "Appraising Resources & Capabilities (VRIN/VRIO)",
+    m4_p1: "Identifying resources is only half the task. Appraising them requires answering: (1) How strategically important is this resource? (2) How strong is it relative to competitors? Grant's framework evaluates strategic importance through three lenses: potential to establish competitive advantage (relevance, scarcity), sustain it (durability, transferability, replicability), and appropriate the returns (property rights, bargaining power, embeddedness).",
+    m4_p2: "\"The resource-based approach has profound implications for companies' strategy formulation. When the primary concern of strategy was industry positioning, the primary task was to select an industry.\" — Grant",
+    m4_p3: "Grant's framework creates a 2×2 matrix of strategic importance vs. relative strength. Key Strengths (high importance, high strength) should be aggressively deployed; Key Weaknesses (high importance, low strength) require urgent action—through improvement, outsourcing, or clever strategy. Harley-Davidson, facing a technology gap, repositioned its brand around 'classic American culture' rather than 'technology leadership,' cleverly negating the weakness.",
+    m4_cards: [
+      { title: "Grant vs. Barney: Two Frameworks, Same Goal", desc: "Grant: relevance, scarcity, durability, transferability, replicability, property rights, bargaining power, embeddedness. Barney's VRIO: Valuable, Rare, Inimitable, Organized. Both assess competitive advantage potential; Grant adds durability and appropriability as explicit dimensions." },
+      { title: "Appropriating Returns: Who Gets the Rent?", desc: "Investment banks (Goldman Sachs) have outstanding capabilities—but employees often appropriate more value than shareholders. The more individual-specific a capability, the stronger employees' bargaining power. This explains why many firms emphasize team-based over individual-star capabilities." }
+    ],
+    m4_case_title: "Micro-Case: TSMC — A Perfect VRIN Resource Analysis",
+    m4_case: "Applying VRIN to TSMC's advanced manufacturing: Valuable—3nm/2nm chips power every major AI workload, directly addressing customers' most critical needs. Rare—only TSMC and Samsung can manufacture at leading-edge nodes; only TSMC does so profitably at scale. Inimitable—path dependency (30+ years of co-developed process R&D with ASML, Applied Materials), causal ambiguity (yield success involves thousands of variables), social complexity (decades of customer trust built through pure-play model). Non-substitutable—no alternative manufacturing route for cutting-edge AI chips. Result: TSMC's 2024 gross margins exceeded 53%, earning Ricardian rents competitors cannot match.",
+    m4_case_lesson: "Insight: TSMC is a textbook VRIN case—every dimension is satisfied, yielding extremely high sustainable competitive advantage. This is why TSMC's 'moat' is so impregnable.",
+    m4_terms: [
+      { front: "VRIN Framework", back: "Barney's resource appraisal: Valuable, Rare, Inimitable, Non-substitutable. When all four conditions are met, the resource confers sustainable competitive advantage." },
+      { front: "Durability", back: "A key dimension in Grant's framework: How long can the resource maintain its value? Brand reputation may last decades, but technology resources may quickly become obsolete in fast-changing industries." },
+      { front: "Appropriability", back: "Who profits from value created by the resource? Depends on property rights clarity, key employees' bargaining power, and capability embeddedness in the organization. The more individual-dependent, the harder for the firm to appropriate returns." }
+    ],
+    m4_q: [
+      { q: "What are Grant's three dimensions for evaluating strategic importance?", opts: ["Scale, scope, speed","Establishing advantage, sustaining advantage, appropriating returns","Cost, quality, innovation","Market, technology, organization"], ans: 1, exp: "Grant evaluates through three lenses: potential to establish competitive advantage, sustain it, and appropriate the returns." },
+      { q: "In Grant's 2×2 matrix, what does 'high strategic importance, low relative strength' represent?", opts: ["Key Strength","Key Weakness","Surplus resource","Irrelevant"], ans: 1, exp: "This represents a Key Weakness—the resource matters for competition but the firm lags, requiring urgent improvement or strategic workaround." },
+      { q: "How did Harley-Davidson overcome its technology weakness?", opts: ["Massive tech investment","Repositioned brand around American culture, not technology","Abandoned the market","Acquired tech companies"], ans: 1, exp: "Harley didn't try to catch Japanese rivals technologically—instead, old-fashioned technology became part of its 'classic' brand charm." },
+      { q: "Which VRIN conditions does TSMC's advanced manufacturing satisfy?", opts: ["Only V and R","Only V, R, and I","All four (V, R, I, N)","Only V"], ans: 2, exp: "TSMC satisfies all four: Valuable, Rare, Inimitable (path dependency + causal ambiguity + social complexity), and Non-substitutable." },
+      { q: "Why might investment bank shareholders earn less than expected?", opts: ["Industry downturn","Key employees appropriate significant value","Technology obsolescence","Client loss"], ans: 1, exp: "Investment banking capabilities are highly individual-dependent; star traders and analysts have strong bargaining power, capturing much of the economic rent." },
+      { q: "What is the main difference between Grant's and Barney's frameworks?", opts: ["Completely different theories","Grant adds durability and appropriability dimensions","Barney is more comprehensive","No difference"], ans: 1, exp: "Both assess competitive advantage potential, but Grant explicitly adds durability (how long value lasts) and appropriability (who profits)." },
+      { q: "Which factor makes TSMC's process hardest to imitate?", opts: ["Expensive equipment","Causal ambiguity (yield involves thousands of variables)","Patent protection","Government subsidies"], ans: 1, exp: "TSMC's yield involves thousands of interacting process variables (causal ambiguity), plus 30 years of path dependency—the strongest imitation barrier." },
+      { q: "What does the 'O' in VRIO stand for?", opts: ["Opportunity","Organization","Optimization","Outsourcing"], ans: 1, exp: "VRIO's O = Organization—whether the firm has appropriate organizational structures to fully exploit its resources' potential." }
+    ],
+
+    m5_nav: "5. Profits & KBV",
+    m5_title: "Resources, Profits & Knowledge-Based View",
+    m5_p1: "RBV explains two sources of above-normal profit: monopoly rents (from market power, protected by entry barriers) and Ricardian rents (from superior resources, named after David Ricardo's analysis of fertile land). Most sustainable competitive advantages ultimately trace to ownership of strategically valuable resources, suggesting industry attractiveness itself may derive from resource ownership.",
+    m5_p2: "\"One gets paid only for strengths; one does not get paid for weaknesses.\" — Peter Drucker",
+    m5_p3: "Grant's Knowledge-Based View (KBV) extends RBV, arguing knowledge is the most strategically significant resource because it is hardest to transfer and replicate. Nonaka's framework identifies four knowledge conversion modes: Socialization (tacit→tacit), Externalization (tacit→explicit), Combination (explicit→explicit), and Internalization (explicit→tacit). Firms that effectively manage this cycle—generating, sharing, and institutionalizing knowledge—build capabilities that compound over time.",
+    m5_cards: [
+      { title: "Ricardian Rents vs. Monopoly Rents", desc: "Monopoly rents arise from market power (oligopoly, regulatory protection). Ricardian rents arise from scarce, superior resources—like fertile land in Ricardo's model, or Dolby earning $879M in royalties in 2014. Both generate profit, but RBV focuses on the latter." },
+      { title: "KBV: Knowledge as the Root of Capability", desc: "Knowledge is the most inimitable resource because tacit knowledge (know-how, judgment, embodied skill) resists codification and transfer. Prahalad & Hamel's 'core competence' concept aligns with KBV—the deepest capabilities are rooted in knowledge that competitors cannot buy or copy." }
+    ],
+    m5_case_title: "Micro-Case: ITRI — Taiwan's Knowledge Creation Engine",
+    m5_case: "ITRI (Industrial Technology Research Institute), founded in 1973, is Taiwan's preeminent national R&D institute and a national-level demonstration of Nonaka's knowledge conversion cycle. Socialization (tacit→tacit): engineers work alongside industry partners in joint labs, transmitting hard-to-articulate R&D experience. Externalization (tacit→explicit): patents, technical reports, and standards convert tacit knowledge into recordable form—ITRI holds 25,000+ patents worldwide. Combination (explicit→explicit): technology transfer creates spin-offs (TSMC, UMC, Vanguard, dozens of IC design firms). Internalization (explicit→tacit): engineers returning to industry carry embodied knowledge. Result: ITRI has incubated 300+ companies, generating NT$3T+ in cumulative industry revenue.",
+    m5_case_lesson: "Insight: ITRI is a living textbook of Nonaka's knowledge conversion cycle—systematically transforming government R&D investment into competitive industries. Taiwan's semiconductor success is fundamentally a Knowledge-Based View success story.",
+    m5_terms: [
+      { front: "Ricardian Rents", back: "Named after economist David Ricardo: above-normal profits earned from owning scarce, superior resources. Like fertile farmland in Ricardo's model producing excess returns over barren land, firms earn above-normal returns from unique resources." },
+      { front: "Knowledge-Based View (KBV)", back: "Extension of RBV arguing knowledge is the most important strategic resource. Because tacit knowledge resists codification and transfer, knowledge-based capabilities constitute the strongest sustainable competitive advantage." },
+      { front: "SECI Knowledge Conversion", back: "Nonaka's four modes: Socialization (tacit→tacit), Externalization (tacit→explicit), Combination (explicit→explicit), Internalization (explicit→tacit). Effective management of this cycle builds compounding organizational capabilities." }
+    ],
+    m5_q: [
+      { q: "What is the source of Ricardian rents?", opts: ["Market monopoly power","Owning scarce, superior resources","Government subsidies","Price manipulation"], ans: 1, exp: "Ricardian rents (named after Ricardo): above-normal profits from owning scarce, superior resources (like fertile land or unique technology)." },
+      { q: "According to KBV, which resource type is most strategically significant?", opts: ["Financial resources","Physical assets","Knowledge","Brands"], ans: 2, exp: "KBV argues knowledge—especially tacit knowledge—is the most difficult to transfer and replicate, thus the most strategically significant." },
+      { q: "What is 'Socialization' in Nonaka's knowledge conversion?", opts: ["Explicit→explicit","Tacit→tacit","Tacit→explicit","Explicit→tacit"], ans: 1, exp: "Socialization is tacit-to-tacit conversion—transmitting hard-to-articulate experience knowledge through observation, imitation, and shared practice." },
+      { q: "What is ITRI's most important contribution mechanism to Taiwan's industry?", opts: ["Direct product manufacturing","Systematic knowledge conversion and technology transfer","Providing low-interest loans","Setting industry standards"], ans: 1, exp: "ITRI systematically converts R&D knowledge into industrial capability through Nonaka's SECI cycle, incubating TSMC and 300+ companies." },
+      { q: "Why does tacit knowledge constitute the strongest imitation barrier?", opts: ["It can be patented","It's difficult to codify, record, and transfer","It's expensive","It only exists in large firms"], ans: 1, exp: "Tacit knowledge (judgment, intuition, embodied skill) resists codification—you cannot write it into a manual, so competitors find it extremely hard to imitate." },
+      { q: "What is the main difference between monopoly rents and Ricardian rents?", opts: ["Former from market power, latter from superior resources","Former more durable","Former more legitimate","They are identical"], ans: 0, exp: "Monopoly rents arise from market power (entry barriers, oligopoly); Ricardian rents arise from scarce, superior resources. RBV focuses on the latter." },
+      { q: "How does Prahalad & Hamel's 'core competence' relate to KBV?", opts: ["They completely contradict","Core competence is rooted in knowledge, consistent with KBV","Core competence replaces KBV","No relationship"], ans: 1, exp: "Core competence's deep foundation is organizational knowledge—especially accumulated and integrated tacit knowledge, fully consistent with KBV." },
+      { q: "Drucker's quote 'One gets paid only for strengths' implies what strategic message?", opts: ["Firms should focus on fixing weaknesses","Firms should focus on leveraging and strengthening existing resource advantages","Weaknesses don't matter","All firms have the same advantages"], ans: 1, exp: "Drucker's insight supports RBV: strategy's core is identifying, cultivating, and leveraging unique resource advantages, not merely fixing weaknesses." }
+    ],
+
+    m6_nav: "6. External Resources", m6_title: "Extended Reading & External Resources", m6_desc: "Curated academic papers, videos, industry reports, and news links extending this module's topics.",
+    mlab_nav: "7. Interactive Lab", mlab_title: "Interactive Lab", mlab_desc: "Explore core RBV concepts through interactive charts and models."
+  }
+};
+
+// SVG Icons
+const IconBookOpen = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+const IconChevronRight = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 18 15 12 9 6"/></svg>;
+const IconMenu = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>;
+const IconX = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IconBarChart2 = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+const IconMoon = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
+const IconSun = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
+const IconPlay = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+const IconPause = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>;
+const IconSquare = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>;
+const IconChevronUp = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="18 15 12 9 6 15"/></svg>;
+const IconArrowRight = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+const IconLayers = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>;
+const IconTrendingUp = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
+const IconZap = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+const IconFlag = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>;
+const IconGlobe = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+const IconCpu = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>;
+const IconTarget = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+const IconZapLab = ({size=24,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 3h6v7l4 5H5l4-5V3z"/><path d="M6 21h12"/><path d="M9 21v-3"/><path d="M15 21v-3"/></svg>;
+const IconExternalLink = ({size=14,className=""})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>;
+
+const TOTAL = 9;
+const N = 5;
+
+const FlipCard = ({ front, back, t }) => {
+  const [flipped, setFlipped] = useState(false);
+  return (
+    <div className="perspective cursor-pointer h-36" onClick={() => setFlipped(!flipped)}>
+      <div className={`transform-style-3d relative w-full h-full transition-transform duration-500 ${flipped ? 'rotate-y-180' : ''}`}>
+        <div className="backface-hidden absolute inset-0 bg-white dark:bg-slate-800 rounded-xl p-4 flex flex-col items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm">
+          <p className="font-serif font-bold text-center text-[#004030] dark:text-[#D8C3A5] text-sm">{front}</p>
+          <p className="text-xs text-slate-400 mt-2">{t.flip_prompt}</p>
+        </div>
+        <div className="backface-hidden rotate-y-180 absolute inset-0 bg-[#004030] dark:bg-slate-700 rounded-xl p-4 flex items-center justify-center">
+          <p className="text-sm text-center text-[#D8C3A5] dark:text-slate-200 leading-relaxed">{back}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ModuleQuiz = ({ questions, t, moduleId, onQuizSubmit }) => {
+  const [selected, setSelected] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [quizIndices] = useState(() => [...Array(questions.length).keys()].sort(() => Math.random() - 0.5).slice(0, 4));
+  const handleSubmit = () => {
+    if (Object.keys(selected).length < quizIndices.length) return;
+    const c = quizIndices.filter((qIdx, i) => selected[i] === questions[qIdx].ans).length;
+    setSubmitted(true);
+    onQuizSubmit(moduleId, c, quizIndices.length);
+  };
+  const correctCount = submitted ? quizIndices.filter((qIdx, i) => selected[i] === questions[qIdx].ans).length : 0;
+  return (
+    <div className="mt-8 bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
+      <h3 className="font-serif font-bold text-xl text-[#004030] dark:text-[#D8C3A5] mb-6 flex items-center"><IconBookOpen size={20} className="mr-2"/>{t.quiz_title}</h3>
+      {quizIndices.map((qIdx, qi) => {
+        const q = questions[qIdx];
+        return (
+          <div key={qIdx} className="mb-6">
+            <p className="font-semibold text-slate-800 dark:text-slate-200 mb-3">{qi+1}. {q.q}</p>
+            <div className="space-y-2">{q.opts.map((opt, oi) => {
+              let cls = "w-full text-left px-4 py-2.5 rounded-lg border text-sm transition-colors ";
+              if (!submitted) cls += selected[qi] === oi ? "border-[#004030] bg-[#004030]/10 dark:bg-[#D8C3A5]/10 text-[#004030] dark:text-[#D8C3A5] font-semibold" : "border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300";
+              else if (oi === q.ans) cls += "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-semibold";
+              else if (selected[qi] === oi) cls += "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400";
+              else cls += "border-slate-200 dark:border-slate-600 text-slate-500";
+              return <button key={oi} onClick={() => !submitted && setSelected(s=>({...s,[qi]:oi}))} className={cls}>{opt}</button>;
+            })}</div>
+            {submitted && <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 italic">{t.explanation}: {q.exp}</p>}
+          </div>
+        );
+      })}
+      {!submitted ? (
+        <button onClick={handleSubmit} disabled={Object.keys(selected).length < quizIndices.length}
+          className="px-6 py-2.5 bg-[#004030] dark:bg-[#D8C3A5] text-white dark:text-[#004030] font-bold rounded-lg disabled:opacity-40 hover:bg-[#002b20] transition-colors">{t.submit}</button>
+      ) : (
+        <div className="flex items-center space-x-4">
+          <span className="font-bold text-lg text-[#004030] dark:text-[#D8C3A5]">{t.score}: {correctCount}/{quizIndices.length}</span>
+          <button onClick={() => { setSelected({}); setSubmitted(false); }} className="px-4 py-2 border border-[#004030] dark:border-[#D8C3A5] text-[#004030] dark:text-[#D8C3A5] rounded-lg hover:bg-[#004030]/10 text-sm font-semibold transition-colors">{t.retry}</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const LinkCard = ({label, url, desc}) => (
+  <a href={url} target="_blank" rel="noopener noreferrer" className="block bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-[#004030] dark:hover:border-[#D8C3A5] hover:shadow-md transition-all group">
+    <div className="flex items-start justify-between gap-2 mb-2">
+      <span className="font-bold font-serif text-sm text-[#004030] dark:text-[#D8C3A5] group-hover:underline leading-snug">{label}</span>
+      <IconExternalLink size={14} className="shrink-0 mt-1 opacity-40 group-hover:opacity-100"/>
+    </div>
+    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{desc}</p>
+  </a>
+);
+
+// Lab Components (top-level)
+const VRINLab = ({lang}) => {
+  const [v, setV] = useState(80);
+  const [r, setR] = useState(70);
+  const [ii, setI] = useState(60);
+  const [n, setN] = useState(75);
+  const avg = Math.round((v+r+ii+n)/4);
+  const level = avg >= 75 ? (lang==='zh'?'持久競爭優勢':'Sustained Competitive Advantage') : avg >= 50 ? (lang==='zh'?'暫時競爭優勢':'Temporary Competitive Advantage') : (lang==='zh'?'競爭劣勢':'Competitive Disadvantage');
+  const color = avg >= 75 ? 'text-green-600' : avg >= 50 ? 'text-yellow-600' : 'text-red-500';
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+      <h4 className="font-serif font-bold text-lg text-[#004030] dark:text-[#D8C3A5] mb-4">{lang==='zh'?'VRIN 資源評估模擬器':'VRIN Resource Appraiser'}</h4>
+      <div className="space-y-3">
+        {[{label:lang==='zh'?'有價值 (Valuable)':'Valuable',val:v,set:setV,c:'bg-blue-400'},{label:lang==='zh'?'稀有 (Rare)':'Rare',val:r,set:setR,c:'bg-purple-400'},{label:lang==='zh'?'難以模仿 (Inimitable)':'Inimitable',val:ii,set:setI,c:'bg-orange-400'},{label:lang==='zh'?'不可替代 (Non-sub.)':'Non-substitutable',val:n,set:setN,c:'bg-teal-400'}].map((d,i)=>(
+          <div key={i}>
+            <div className="flex justify-between text-xs mb-1"><span>{d.label}</span><span className="font-bold">{d.val}%</span></div>
+            <input type="range" min="0" max="100" value={d.val} onChange={e=>d.set(+e.target.value)} className="w-full accent-[#004030]"/>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 p-4 bg-slate-100 dark:bg-slate-700 rounded-lg text-center">
+        <p className="text-sm">{lang==='zh'?'競爭優勢評級':'Advantage Rating'}: <span className={`font-bold text-lg ${color}`}>{level}</span></p>
+        <p className="text-xs text-slate-500 mt-1">{lang==='zh'?'綜合分數':'Overall Score'}: {avg}/100</p>
+      </div>
+    </div>
+  );
+};
+
+const ResourceMapLab = ({lang}) => {
+  const resources = lang==='zh'
+    ? [{name:'品牌聲譽',type:'intangible',importance:90,strength:85},{name:'專利組合',type:'intangible',importance:80,strength:70},{name:'製造設備',type:'tangible',importance:60,strength:75},{name:'現金儲備',type:'tangible',importance:50,strength:60},{name:'工程師團隊',type:'human',importance:85,strength:80},{name:'企業文化',type:'intangible',importance:75,strength:65}]
+    : [{name:'Brand Reputation',type:'intangible',importance:90,strength:85},{name:'Patent Portfolio',type:'intangible',importance:80,strength:70},{name:'Manufacturing Equipment',type:'tangible',importance:60,strength:75},{name:'Cash Reserves',type:'tangible',importance:50,strength:60},{name:'Engineering Team',type:'human',importance:85,strength:80},{name:'Corporate Culture',type:'intangible',importance:75,strength:65}];
+  const typeColor = {tangible:'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',intangible:'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',human:'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'};
+  const typeLabel = {tangible:lang==='zh'?'有形':'Tangible',intangible:lang==='zh'?'無形':'Intangible',human:lang==='zh'?'人力':'Human'};
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+      <h4 className="font-serif font-bold text-lg text-[#004030] dark:text-[#D8C3A5] mb-4">{lang==='zh'?'資源強度地圖（Grant 2×2）':'Resource Strength Map (Grant 2×2)'}</h4>
+      <div className="space-y-2">
+        {resources.map((r,i)=>{
+          const quad = r.importance>=70 ? (r.strength>=70 ? (lang==='zh'?'⭐ 關鍵優勢':'⭐ Key Strength') : (lang==='zh'?'⚠️ 關鍵劣勢':'⚠️ Key Weakness')) : (r.strength>=70 ? (lang==='zh'?'✅ 超額資源':'✅ Surplus') : (lang==='zh'?'— 低優先':'— Low Priority'));
+          return (
+            <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50">
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${typeColor[r.type]}`}>{typeLabel[r.type]}</span>
+              <span className="text-sm font-medium flex-1">{r.name}</span>
+              <span className="text-xs text-slate-500 w-16 text-right">{lang==='zh'?'重要':'Imp'}: {r.importance}</span>
+              <span className="text-xs text-slate-500 w-16 text-right">{lang==='zh'?'強度':'Str'}: {r.strength}</span>
+              <span className="text-xs font-bold w-24 text-right">{quad}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const SECILab = ({lang}) => {
+  const [mode, setMode] = useState(0);
+  const modes = lang==='zh'
+    ? [{n:'社會化',from:'默會',to:'默會',desc:'師徒制、共同工作、觀察模仿。知識透過共享經驗傳遞。',ex:'工研院工程師與產業夥伴在聯合實驗室並肩工作',color:'bg-blue-500'},{n:'外化',from:'默會',to:'顯性',desc:'將隱性知識轉化為可記錄的概念、模型、專利。',ex:'工研院將研發經驗轉化為 25,000+ 專利',color:'bg-green-500'},{n:'組合',from:'顯性',to:'顯性',desc:'整合不同來源的顯性知識，創造新的知識體系。',ex:'技術移轉創造衍生企業（台積電、聯電）',color:'bg-purple-500'},{n:'內化',from:'顯性',to:'默會',desc:'透過實踐將顯性知識轉化為個人的默會知識。',ex:'回流產業界的工程師帶走具身化的知識',color:'bg-orange-500'}]
+    : [{n:'Socialization',from:'Tacit',to:'Tacit',desc:'Apprenticeship, shared work, observation. Knowledge transfers through shared experience.',ex:'ITRI engineers work alongside industry partners in joint labs',color:'bg-blue-500'},{n:'Externalization',from:'Tacit',to:'Explicit',desc:'Converting tacit knowledge into recordable concepts, models, patents.',ex:'ITRI converts R&D experience into 25,000+ patents',color:'bg-green-500'},{n:'Combination',from:'Explicit',to:'Explicit',desc:'Integrating explicit knowledge from different sources into new knowledge systems.',ex:'Technology transfer creates spin-offs (TSMC, UMC)',color:'bg-purple-500'},{n:'Internalization',from:'Explicit',to:'Tacit',desc:'Converting explicit knowledge into personal tacit knowledge through practice.',ex:'Engineers returning to industry carry embodied knowledge',color:'bg-orange-500'}];
+  const m = modes[mode];
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+      <h4 className="font-serif font-bold text-lg text-[#004030] dark:text-[#D8C3A5] mb-4">{lang==='zh'?'SECI 知識轉換模型':'SECI Knowledge Conversion Model'}</h4>
+      <div className="grid grid-cols-4 gap-2 mb-4">{modes.map((s,i)=>(
+        <button key={i} onClick={()=>setMode(i)} className={`px-2 py-2 text-xs rounded-lg font-bold transition-colors ${mode===i?'bg-[#004030] text-white dark:bg-[#D8C3A5] dark:text-[#004030]':'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>{s.n}</button>
+      ))}</div>
+      <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg space-y-3">
+        <div className="flex items-center gap-3">
+          <span className={`px-3 py-1 rounded-full text-white text-xs font-bold ${m.color}`}>{m.from}</span>
+          <span className="text-lg">→</span>
+          <span className={`px-3 py-1 rounded-full text-white text-xs font-bold ${m.color}`}>{m.to}</span>
+        </div>
+        <p className="text-sm">{m.desc}</p>
+        <p className="text-xs text-slate-500 italic">{lang==='zh'?'台灣案例':'Taiwan example'}: {m.ex}</p>
+      </div>
+    </div>
+  );
+};
+
+const CapabilityHierarchyLab = ({lang}) => {
+  const [level, setLevel] = useState(3);
+  const levels = lang==='zh'
+    ? [{n:'專業化能力',desc:'單一任務或技術（如自動波焊、CNC 加工）',diff:'低',ex:'工廠產線操作員的焊接技術'},{n:'活動相關能力',desc:'整合多項專業化能力（如物料管理、品質控制）',diff:'中低',ex:'鴻海的即時物料配送系統'},{n:'功能能力',desc:'廣泛的部門能力（如營運管理、研發管理）',diff:'中高',ex:'台積電的晶圓製造技術管理'},{n:'跨功能能力',desc:'整合多部門的組織能力（如新產品開發、供應鏈整合）',diff:'最高',ex:'Apple 的產品設計到量產整合能力'}]
+    : [{n:'Specialized',desc:'Single task or technique (e.g., wave soldering, CNC machining)',diff:'Low',ex:'Factory line operator welding technique'},{n:'Activity-Related',desc:'Integrating multiple specialized capabilities (e.g., materials mgmt, QC)',diff:'Med-Low',ex:'Foxconn JIT material delivery system'},{n:'Functional',desc:'Broad departmental capability (e.g., operations, R&D management)',diff:'Med-High',ex:'TSMC wafer fabrication technology management'},{n:'Cross-Functional',desc:'Integrating multiple departments (e.g., NPD, supply chain integration)',diff:'Highest',ex:'Apple design-to-mass-production integration'}];
+  const l = levels[level];
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+      <h4 className="font-serif font-bold text-lg text-[#004030] dark:text-[#D8C3A5] mb-4">{lang==='zh'?'能力層級金字塔':'Capability Hierarchy Pyramid'}</h4>
+      <div className="flex flex-col items-center gap-1 mb-4">
+        {levels.slice().reverse().map((lv,i)=>{
+          const idx = levels.length-1-i;
+          const w = 40+i*20;
+          return <button key={idx} onClick={()=>setLevel(idx)} className={`rounded-lg py-2 text-xs font-bold transition-all ${level===idx?'bg-[#004030] text-white dark:bg-[#D8C3A5] dark:text-[#004030]':'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`} style={{width:`${w}%`}}>{lv.n}</button>;
+        })}
+      </div>
+      <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg space-y-2">
+        <p className="text-sm">{l.desc}</p>
+        <p className="text-xs"><span className="font-bold">{lang==='zh'?'模仿難度':'Imitation Difficulty'}:</span> {l.diff}</p>
+        <p className="text-xs text-slate-500 italic">{lang==='zh'?'例':'Example'}: {l.ex}</p>
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  const [lang, setLang] = useState('zh');
+  const [isDark, setIsDark] = useState(false);
+  const [module, setModule] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => { if (!menuOpen) return; const h = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); }; document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, [menuOpen]);
+  const [ttsState, setTtsState] = useState('idle');
+  const [studentInfo, setStudentInfo] = useState({ group:'', dept:'', id:'', name:'' });
+  const [analytics, setAnalytics] = useState({ time: Array(N).fill(0), clicks: Array(N).fill(0), quizCorrect: Array(N).fill(0), quizTotal: Array(N).fill(0) });
+  const contentRef = useRef(null);
+  const timerRef = useRef(null);
+  const t = dict[lang];
+
+  useEffect(() => { isDark ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark'); }, [isDark]);
+  useEffect(() => {
+    window.speechSynthesis && window.speechSynthesis.cancel(); setTtsState('idle');
+    window.scrollTo({top:0,behavior:'smooth'});
+    if (timerRef.current) clearInterval(timerRef.current);
+    const mi = module - 1;
+    if (mi >= 0 && mi < N) { timerRef.current = setInterval(() => { setAnalytics(a => { const t2 = [...a.time]; t2[mi]++; return {...a, time: t2}; }); }, 1000); }
+    return () => clearInterval(timerRef.current);
+  }, [module]);
+
+  const handleClick = () => { const mi = module - 1; if (mi >= 0 && mi < N) setAnalytics(a => { const c = [...a.clicks]; c[mi]++; return {...a, clicks: c}; }); };
+  const handleQuizSubmit = (modId, correct, total) => { const mi = modId - 1; if (mi >= 0 && mi < N) setAnalytics(a => { const qc=[...a.quizCorrect]; const qt=[...a.quizTotal]; qc[mi]=correct; qt[mi]=total; return {...a, quizCorrect:qc, quizTotal:qt}; }); };
+
+  const handleTTS = (action) => {
+    if (!('speechSynthesis' in window)) return;
+    if (action === 'stop') { window.speechSynthesis.cancel(); setTtsState('idle'); return; }
+    if (action === 'pause') { window.speechSynthesis.pause(); setTtsState('paused'); return; }
+    if (action === 'play') {
+      if (ttsState === 'paused') { window.speechSynthesis.resume(); setTtsState('playing'); return; }
+      window.speechSynthesis.cancel();
+      const sep = lang === 'zh' ? '。 ' : '. ';
+      let texts = [];
+      if (module === 0) { texts = [t.m0_title, t.m0_intro, t.m0_why, t.m0_why_desc].filter(Boolean); }
+      else if (module >= 1 && module <= N) {
+        const mk = `m${module}`;
+        texts = [t[`${mk}_title`],t[`${mk}_p1`],t[`${mk}_p2`],t[`${mk}_p3`],...(t[`${mk}_cards`]||[]).map(c=>`${c.title}. ${c.desc}`),...(t[`${mk}_terms`]||[]).flatMap(term=>[term.front,term.back]),t[`${mk}_case_title`],t[`${mk}_case`],t[`${mk}_case_lesson`]].filter(Boolean);
+      } else if (module === N+1) { texts = [t.m6_title, t.m6_desc]; }
+      else if (module === N+2) { texts = [t.mlab_title, t.mlab_desc]; }
+      else { texts = [t.analytics_title, t.analytics_desc]; }
+      const text = texts.filter(Boolean).join(sep);
+      const utterance = new SpeechSynthesisUtterance(text); utterance.rate = 0.95;
+      const voices = window.speechSynthesis.getVoices();
+      if (lang === 'zh') { const v = voices.find(v=>v.lang==='zh-TW'&&v.name.includes('Yating'))||voices.find(v=>v.lang==='zh-TW')||voices.find(v=>v.lang.startsWith('zh')); if(v)utterance.voice=v; utterance.lang='zh-TW'; }
+      else { const v = voices.find(v=>v.lang==='en-GB'&&v.name.includes('Daniel'))||voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en')); if(v)utterance.voice=v; utterance.lang='en-GB'; }
+      utterance.onend = () => setTtsState('idle'); utterance.onerror = () => setTtsState('idle');
+      window.speechSynthesis.speak(utterance); setTtsState('playing');
+    }
+  };
+
+  const handleExportCSV = () => {
+    const BOM = '\uFEFF';
+    const mNavKeys = ['m1_nav','m2_nav','m3_nav','m4_nav','m5_nav'];
+    const rows = [[t.analytics_group,t.analytics_dept,t.analytics_id,t.analytics_name],[studentInfo.group,studentInfo.dept,studentInfo.id,studentInfo.name],[],[t.analytics_module,t.analytics_time,t.analytics_clicks,t.analytics_acc,t.analytics_correct_ans_total],
+      ...Array.from({length:N},(_,i)=>{const acc=analytics.quizTotal[i]>0?Math.round(analytics.quizCorrect[i]/analytics.quizTotal[i]*100)+'%':t.analytics_no_data;const ans=analytics.quizTotal[i]>0?`${analytics.quizCorrect[i]}/${analytics.quizTotal[i]}/8`:t.analytics_no_data;return[t[mNavKeys[i]],analytics.time[i]+t.analytics_sec,analytics.clicks[i]+t.analytics_times,acc,ans];})];
+    const csv = BOM + rows.map(r=>r.join(',')).join('\n');
+    const a = document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='learning_analytics.csv'; a.click();
+  };
+
+  const modulesList = [
+    {id:0,icon:<IconFlag size={16}/>,title:t.m0_nav},
+    {id:1,icon:<IconLayers size={16}/>,title:t.m1_nav},
+    {id:2,icon:<IconTrendingUp size={16}/>,title:t.m2_nav},
+    {id:3,icon:<IconZap size={16}/>,title:t.m3_nav},
+    {id:4,icon:<IconTarget size={16}/>,title:t.m4_nav},
+    {id:5,icon:<IconCpu size={16}/>,title:t.m5_nav},
+    {id:6,icon:<IconGlobe size={16}/>,title:t.m6_nav},
+    {id:7,icon:<IconZapLab size={16}/>,title:t.mlab_nav},
+    {id:8,icon:<IconBarChart2 size={16}/>,title:t.analytics_title}
+  ];
+
+  const renderNavBottom = () => (
+    <div className="mt-12 flex justify-between items-center pt-8 border-t border-slate-300 dark:border-slate-700">
+      <button onClick={()=>setModule(Math.max(0,module-1))} disabled={module===0} className="px-6 py-3 font-serif font-bold text-slate-500 hover:text-[#004030] dark:hover:text-[#D8C3A5] disabled:opacity-0 transition-colors flex items-center uppercase text-sm tracking-wider">← {t.nav_prev}</button>
+      <button onClick={()=>setModule(Math.min(TOTAL-1,module+1))} disabled={module===TOTAL-1} className="px-8 py-3 bg-[#004030] dark:bg-[#D8C3A5] text-white dark:text-[#004030] font-serif font-bold hover:bg-[#002b20] disabled:opacity-0 transition-colors flex items-center uppercase text-sm tracking-wider shadow-md">{t.nav_next} <IconArrowRight size={16} className="ml-2"/></button>
+    </div>
+  );
+
+  const H2 = ({children}) => <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-[#004030] dark:text-[#D8C3A5] border-b-2 border-[#D8C3A5] pb-4">{children}</h2>;
+  const fade = "animate-fade-in";
+  const base = `space-y-6 text-base leading-relaxed text-slate-700 dark:text-slate-300 ${fade}`;
+
+  const renderModule = (num) => {
+    const mk = `m${num}`;
+    return (
+      <div className={base}>
+        <H2>{t[`${mk}_title`]}</H2>
+        <p>{t[`${mk}_p1`]}</p>
+        <p className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg italic font-serif text-slate-600 dark:text-slate-300">{t[`${mk}_p2`]}</p>
+        <p>{t[`${mk}_p3`]}</p>
+        <div className="grid md:grid-cols-2 gap-6">{t[`${mk}_cards`].map((c,i)=>(
+          <div key={i} className="bg-white dark:bg-slate-800 p-6 rounded-xl border-l-4 border-[#004030] shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="text-lg font-bold font-serif text-[#004030] dark:text-[#D8C3A5] mb-2">{c.title}</h3>
+            <p className="text-sm">{c.desc}</p>
+          </div>
+        ))}</div>
+        <div className="bg-[#004030] text-white dark:bg-slate-700 p-6 rounded-xl shadow-md">
+          <h3 className="font-serif font-bold text-lg text-[#D8C3A5] mb-3">{t[`${mk}_case_title`]}</h3>
+          <p className="text-sm leading-relaxed text-[#D8C3A5]/90 mb-4">{t[`${mk}_case`]}</p>
+          <div className="bg-white/10 rounded-lg p-4">
+            <p className="text-sm font-bold text-[#D8C3A5]">{t[`${mk}_case_lesson`]}</p>
+          </div>
+        </div>
+        <div className="mt-8"><h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">{t.key_terms}</h3>
+        <div key={`terms-${module}`} className="grid grid-cols-1 md:grid-cols-3 gap-4">{t[`${mk}_terms`].map((term,i)=><FlipCard key={i} front={term.front} back={term.back} t={t}/>)}</div></div>
+        <ModuleQuiz key={`quiz-${module}`} questions={t[`${mk}_q`]} t={t} moduleId={num} onQuizSubmit={handleQuizSubmit}/>
+        {renderNavBottom()}
+      </div>
+    );
+  };
+
+  const renderResources = () => {
+    const links = [
+      {label:lang==='zh'?'Grant 教科書第五章 PDF（課程指定）':'Grant Ch.5 PDF (Course Required)',url:'#',desc:lang==='zh'?'Resources and Capabilities as the Basis for Strategy':'Resources and Capabilities as the Basis for Strategy'},
+      {label:lang==='zh'?'Barney (1991): Firm Resources and Sustained Competitive Advantage':'Barney (1991): Firm Resources and Sustained Competitive Advantage',url:'https://doi.org/10.1177/014920639101700108',desc:lang==='zh'?'RBV 最經典的學術論文，提出 VRIN 架構':'The seminal RBV academic paper introducing the VRIN framework'},
+      {label:lang==='zh'?'Rumelt (1991): How Much Does Industry Matter?':'Rumelt (1991): How Much Does Industry Matter?',url:'https://doi.org/10.1002/smj.4250120302',desc:lang==='zh'?'證明企業因素遠大於產業因素的里程碑研究':'Landmark study proving firm factors far exceed industry factors'},
+      {label:lang==='zh'?'台積電年度報告':'TSMC Annual Report',url:'https://investor.tsmc.com/english/annual-reports',desc:lang==='zh'?'了解台積電的資源與能力配置':'Explore TSMC resource and capability deployment'},
+    ];
+    const otherLinks = [
+      {icon:'📚',cat:lang==='zh'?'經典著作':'Classic Works',items:[
+        {label:lang==='zh'?'Prahalad & Hamel: The Core Competence of the Corporation':'Prahalad & Hamel: The Core Competence of the Corporation',url:'https://hbr.org/1990/05/the-core-competence-of-the-corporation',desc:lang==='zh'?'核心能力概念的開創性 HBR 文章':'The foundational HBR article on core competence'},
+        {label:lang==='zh'?'Nonaka: The Knowledge-Creating Company':'Nonaka: The Knowledge-Creating Company',url:'https://hbr.org/2007/07/the-knowledge-creating-company',desc:lang==='zh'?'知識創造理論的經典 HBR 文章':'The classic HBR article on organizational knowledge creation'},
+      ]},
+      {icon:'🎥',cat:lang==='zh'?'影片資源':'Video Resources',items:[
+        {label:lang==='zh'?'RBV 講解（Coursera）':'RBV Explained (Coursera)',url:'https://www.coursera.org/lecture/competitive-strategy/the-resource-based-view-rbv',desc:lang==='zh'?'結構清晰的 RBV 影片教學':'Well-structured video lecture on RBV'},
+        {label:lang==='zh'?'VRIO 架構動畫解說':'VRIO Framework Animated',url:'https://www.youtube.com/results?search_query=VRIO+framework+explained',desc:lang==='zh'?'以動畫方式解說 Barney VRIO 架構':'Animated explanation of Barney\'s VRIO framework'},
+      ]},
+    ];
+    return (
+      <div className={`space-y-10 ${fade}`}>
+        <H2>{t.m6_title}</H2>
+        <p className="text-slate-500 dark:text-slate-400">{t.m6_desc}</p>
+        <div className="grid md:grid-cols-2 gap-3">{links.map((l,i)=><LinkCard key={i} {...l}/>)}</div>
+        {otherLinks.map((sec,si)=>(
+          <div key={si}>
+            <h3 className="flex items-center gap-2 text-base font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3"><span>{sec.icon}</span>{sec.cat}</h3>
+            <div className="grid md:grid-cols-2 gap-3">{sec.items.map((l,i)=><LinkCard key={i} {...l}/>)}</div>
+          </div>
+        ))}
+        <div className="bg-[#004030]/5 dark:bg-[#D8C3A5]/5 rounded-xl p-5 border border-[#004030]/20 dark:border-[#D8C3A5]/20">
+          <p className="text-sm text-slate-600 dark:text-slate-400">{lang==='zh'?'⚠️ 以上連結為外部資源，內容由原始作者維護，僅供學術參考之用。':'⚠️ External links maintained by original authors. For academic reference only.'}</p>
+        </div>
+        {renderNavBottom()}
+      </div>
+    );
+  };
+
+  const renderLab = () => (
+    <div className={`space-y-8 ${fade}`}>
+      <H2>{t.mlab_title}</H2>
+      <p className="text-slate-600 dark:text-slate-400">{t.mlab_desc}</p>
+      <VRINLab lang={lang}/>
+      <div className="grid md:grid-cols-2 gap-6">
+        <SECILab lang={lang}/>
+        <CapabilityHierarchyLab lang={lang}/>
+      </div>
+      <ResourceMapLab lang={lang}/>
+      {renderNavBottom()}
+    </div>
+  );
+
+  const renderContent = () => {
+    if (module === 0) return (
+      <div className={`space-y-8 text-lg leading-relaxed text-slate-700 dark:text-slate-300 ${fade}`}>
+        <div className="bg-[#004030] dark:bg-slate-800 rounded-2xl p-6 sm:p-8 text-white">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#D8C3A5] mb-3">{lang==='zh'?'課程簡介':'Course Introduction'}</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-white mb-4">{t.m0_title}</h2>
+          <p className="text-[#D8C3A5]/90 text-base leading-relaxed">{t.m0_intro}</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border-l-4 border-[#D8C3A5] shadow-sm">
+          <h3 className="text-xl font-bold font-serif text-[#004030] dark:text-[#D8C3A5] mb-3">{t.m0_why}</h3>
+          <p className="text-base">{t.m0_why_desc}</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{t.m0_stats.map((s,i)=>(
+          <div key={i} className="bg-white dark:bg-slate-800 rounded-xl p-5 text-center shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="text-2xl md:text-3xl font-black font-serif text-[#004030] dark:text-[#D8C3A5] mb-1">{s.val}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{s.label}</div>
+          </div>
+        ))}</div>
+        <div>
+          <h3 className="text-lg font-bold uppercase tracking-wider text-slate-500 mb-4">{lang==='zh'?'課程模組':'Course Modules'}</h3>
+          <div className="space-y-3">{t.m0_modules.map((m,i)=>(
+            <button key={i} onClick={()=>setModule(i+1)} className="w-full flex items-center gap-5 bg-white dark:bg-slate-800 rounded-xl px-6 py-4 border border-slate-200 dark:border-slate-700 hover:border-[#004030] dark:hover:border-[#D8C3A5] hover:shadow-md transition-all text-left group">
+              <div className="text-3xl font-black font-serif text-[#D8C3A5] w-10 shrink-0">{m.num}</div>
+              <div className="flex-1"><div className="font-bold font-serif text-[#004030] dark:text-[#D8C3A5] mb-1">{m.title}</div><div className="text-sm text-slate-500">{m.desc}</div></div>
+              <IconChevronRight size={20} className="text-slate-300 group-hover:text-[#004030] dark:group-hover:text-[#D8C3A5] shrink-0"/>
+            </button>
+          ))}</div>
+        </div>
+        <div className="flex justify-end">
+          <button onClick={()=>setModule(1)} className="px-8 py-3 bg-[#004030] dark:bg-[#D8C3A5] text-white dark:text-[#004030] font-serif font-bold hover:bg-[#002b20] rounded-lg shadow-md">{t.m0_start}</button>
+        </div>
+      </div>
+    );
+    if (module >= 1 && module <= N) return renderModule(module);
+    if (module === N+1) return renderResources();
+    if (module === N+2) return renderLab();
+    if (module === N+3) {
+      const totalTime = analytics.time.reduce((a,b)=>a+b,0);
+      const totalClicks = analytics.clicks.reduce((a,b)=>a+b,0);
+      const totalCorrect = analytics.quizCorrect.reduce((a,b)=>a+b,0);
+      const totalAnswered = analytics.quizTotal.reduce((a,b)=>a+b,0);
+      const overallAcc = totalAnswered > 0 ? Math.round(totalCorrect/totalAnswered*100)+'%' : t.analytics_no_data;
+      const canExport = studentInfo.group && studentInfo.dept && studentInfo.id && studentInfo.name;
+      const mNavKeys = ['m1_nav','m2_nav','m3_nav','m4_nav','m5_nav'];
+      return (
+        <div className={base}>
+          <H2>{t.analytics_title}</H2>
+          <p className="text-slate-500 dark:text-slate-400">{t.analytics_desc}</p>
+          <div className="grid grid-cols-3 gap-4">{[{label:t.analytics_total_time,val:totalTime+t.analytics_sec},{label:t.analytics_total_clicks,val:totalClicks+t.analytics_times},{label:t.analytics_overall_acc,val:overallAcc}].map((s,i)=>(
+            <div key={i} className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-center shadow-sm">
+              <p className="text-2xl font-black font-serif text-[#004030] dark:text-[#D8C3A5]">{s.val}</p>
+              <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+            </div>
+          ))}</div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+            <table className="w-full text-sm"><thead><tr className="bg-[#004030] text-[#D8C3A5]">
+              <th className="text-left p-3">{t.analytics_module}</th><th className="text-center p-3">{t.analytics_time}</th><th className="text-center p-3">{t.analytics_clicks}</th><th className="text-center p-3">{t.analytics_acc}</th><th className="text-center p-3 hidden md:table-cell">{t.analytics_correct_ans_total}</th>
+            </tr></thead><tbody>{Array.from({length:N},(_,i)=>{
+              const acc=analytics.quizTotal[i]>0?Math.round(analytics.quizCorrect[i]/analytics.quizTotal[i]*100)+'%':t.analytics_no_data;
+              const ans=analytics.quizTotal[i]>0?`${analytics.quizCorrect[i]}/${analytics.quizTotal[i]}/8`:t.analytics_no_data;
+              return <tr key={i} className="border-t border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"><td className="p-3 font-medium text-[#004030] dark:text-[#D8C3A5]">{t[mNavKeys[i]]}</td><td className="p-3 text-center">{analytics.time[i]}{t.analytics_sec}</td><td className="p-3 text-center">{analytics.clicks[i]}{t.analytics_times}</td><td className="p-3 text-center">{acc}</td><td className="p-3 text-center hidden md:table-cell">{ans}</td></tr>;
+            })}</tbody></table>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+            <h3 className="font-serif font-bold text-lg text-[#004030] dark:text-[#D8C3A5] mb-4">{t.analytics_form_title}</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{t.analytics_group}</label>
+                <select value={studentInfo.group} onChange={e=>setStudentInfo({...studentInfo,group:e.target.value})} className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"><option value="">--</option>{t.group_options.map(g=><option key={g} value={g}>{g}</option>)}</select></div>
+              <div><label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{t.analytics_dept}</label>
+                <input value={studentInfo.dept} onChange={e=>setStudentInfo({...studentInfo,dept:e.target.value})} placeholder={t.analytics_dept_ph} className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"/></div>
+              <div><label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{t.analytics_id}</label>
+                <input value={studentInfo.id} onChange={e=>setStudentInfo({...studentInfo,id:e.target.value})} placeholder={t.analytics_id_ph} className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"/></div>
+              <div><label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{t.analytics_name}</label>
+                <input value={studentInfo.name} onChange={e=>setStudentInfo({...studentInfo,name:e.target.value})} placeholder={t.analytics_name_ph} className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"/></div>
+            </div>
+            <button onClick={handleExportCSV} disabled={!canExport} className="mt-4 px-6 py-2.5 bg-[#004030] dark:bg-[#D8C3A5] text-white dark:text-[#004030] font-bold rounded-lg disabled:opacity-40 hover:bg-[#002b20] transition-colors text-sm">{canExport?t.analytics_export_csv:t.analytics_fill_required}</button>
+          </div>
+          {renderNavBottom()}
+        </div>
+      );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f4f4f4] dark:bg-[#121212] font-sans selection:bg-[#004030] selection:text-white dark:selection:bg-[#D8C3A5] dark:selection:text-[#004030] flex flex-col overflow-x-hidden pt-16">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-[#004030] dark:bg-slate-900 text-white z-50 shadow-lg border-b border-[#D8C3A5]/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="relative" ref={menuRef}>
+              <button className="p-2 hover:bg-white/10 rounded-lg" onClick={()=>setMenuOpen(!menuOpen)}>{menuOpen?<IconX size={20}/>:<IconMenu size={20}/>}</button>
+              {menuOpen && (
+                <div className="absolute top-full left-0 mt-1 w-64 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-5rem)] overflow-y-auto bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 z-[100] overflow-x-hidden">
+                  <div className="bg-[#004030]/5 dark:bg-[#D8C3A5]/5 px-4 py-2 border-b border-slate-200 dark:border-slate-700"><p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t.nav_modules}</p></div>
+                  {modulesList.map(m=>(
+                    <button key={m.id} onClick={()=>{setModule(m.id);setMenuOpen(false);}} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left ${module===m.id?'bg-[#004030] text-white dark:bg-[#D8C3A5]/20 dark:text-[#D8C3A5] font-bold':'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
+                      <span className={module===m.id?'text-[#D8C3A5]':'opacity-50'}>{m.icon}</span><span className="truncate">{m.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={()=>window.scrollTo({top:0,behavior:'smooth'})} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <div className="font-serif font-black text-lg tracking-widest text-[#D8C3A5]">{t.brand}</div>
+              <div className="hidden sm:block text-left"><h1 className="font-serif font-bold text-sm md:text-base leading-tight">{t.title}</h1><p className="text-[10px] text-[#D8C3A5]/70">{t.subtitle}</p></div>
+            </button>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-1 mr-2">
+              {ttsState!=='playing'?(<button onClick={()=>handleTTS('play')} title={t.audio_read} className="p-2 rounded-full hover:bg-white/10 transition-colors flex items-center space-x-1 text-xs"><IconPlay size={14}/><span className="hidden md:inline">{t.audio_read}</span></button>):(<button onClick={()=>handleTTS('pause')} className="p-2 rounded-full hover:bg-white/10 transition-colors"><IconPause size={14}/></button>)}
+              {ttsState!=='idle'&&<button onClick={()=>handleTTS('stop')} className="p-2 rounded-full hover:bg-white/10 transition-colors"><IconSquare size={14}/></button>}
+            </div>
+            <button onClick={()=>setLang(lang==='zh'?'en':'zh')} className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-sm font-bold transition-colors">{lang==='zh'?'EN':'中文'}</button>
+            <button onClick={()=>setIsDark(!isDark)} className="p-2 rounded-full hover:bg-white/10 transition-colors">{isDark?<IconSun size={18}/>:<IconMoon size={18}/>}</button>
+          </div>
+        </div>
+      </header>
+      <div className="max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-6 flex-1 flex flex-col md:flex-row gap-0 py-6">
+        <aside className="hidden md:block w-64 shrink-0 mr-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden sticky top-24">
+            <div className="bg-[#004030]/5 dark:bg-[#D8C3A5]/5 px-4 py-3 border-b border-slate-200 dark:border-slate-700"><p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t.nav_modules}</p></div>
+            <nav className="space-y-0.5 p-2">{modulesList.map(m=>(
+              <button key={m.id} onClick={()=>{setModule(m.id);setMenuOpen(false);}} className={`w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${module===m.id?'bg-[#004030] dark:bg-[#D8C3A5]/20 text-white dark:text-[#D8C3A5] border border-[#D8C3A5]/30':'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
+                <span className={`mr-2.5 ${module===m.id?'text-[#D8C3A5]':'opacity-50'}`}>{m.icon}</span><span className="truncate">{m.title}</span>
+                {module===m.id&&<IconChevronRight size={14} className="ml-auto opacity-50 shrink-0"/>}
+              </button>
+            ))}</nav>
+          </div>
+        </aside>
+        <main ref={contentRef} className="flex-1 min-w-0" onClick={handleClick}>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 sm:p-6 md:p-8">{renderContent()}</div>
+        </main>
+      </div>
+      <footer className="bg-[#004030] dark:bg-slate-950 text-slate-300 dark:text-slate-400 border-t border-[#D8C3A5]">
+        <div className="max-w-7xl mx-auto px-4 h-8 flex justify-between items-center text-[10px] sm:text-xs">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="font-serif font-black text-[#D8C3A5] hidden sm:block tracking-widest text-sm">{t.brand}</div>
+            <span className="truncate">{t.copyright} · {t.date}</span>
+          </div>
+          <div className="flex items-center space-x-3 md:space-x-4">
+            <span className="text-[#D8C3A5]/70 font-serif hidden sm:inline">Architect:&nbsp;<a href={t.architect_url} target="_blank" rel="noopener noreferrer" className="text-[#D8C3A5] hover:text-white underline underline-offset-2 transition-colors">Prof. Shihmin Lo</a></span>
+            <button onClick={()=>window.scrollTo({top:0,behavior:'smooth'})} className="flex items-center uppercase tracking-widest hover:text-white transition-colors border-l border-slate-600 pl-3"><IconChevronUp size={12} className="md:mr-1"/><span className="hidden sm:inline">TOP</span></button>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
